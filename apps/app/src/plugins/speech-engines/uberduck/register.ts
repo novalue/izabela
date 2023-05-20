@@ -23,10 +23,11 @@ registerEngine({
     const speechStore = useSpeechStore()
     return speechStore.hasUniversalApiCredentials || Object.values(getCredentials()).every(Boolean)
   },
-  getPayload({ text, translatedText, voice }) {
+  getPayload({ text, translatedText, voice, dictionaryRules }) {
     return {
       speech: translatedText || text,
       voicemodel_uuid: (voice || getSelectedVoice()).voicemodel_uuid,
+      dictionaryRules
     }
   },
   getLanguageCode() {

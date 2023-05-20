@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { DictionaryRule } from '@/modules/speech-engine-manager/types'
+
 export const useDictionaryStore = defineStore(
   'dictionary',
   () => {
@@ -67,30 +69,46 @@ export const useDictionaryStore = defineStore(
     )
     const translateText = (text: string) => {
       if (!enableDictionary.value) return text
-      const words = text.split(' ')
-      const flags = caseSensitive.value ? 'g' : 'gi'
+
+      let newText = text
       filteredDefinitions.value.forEach(([word, definition]) => {
-        words.forEach((currentWord, i) => {
-          const exactMatchRegexExpression = `\\b${word}\\b`
-          const boundaryMatchRegexExpression = `^${word}|${word}$`
-          const exactMatchRegex = new RegExp(`\\b${word}\\b`, flags)
-          const boundaryMatchRegex = new RegExp(`^${word}|${word}$`, flags)
-          const evaluations = [
-            exactMatchRegex.test(currentWord),
-            boundaryMatchRegex.test(currentWord),
-          ]
-          if (word && (evaluations[0] || (!matchExactWord.value && evaluations[1]))) {
-            words[i] = currentWord.replace(
-              new RegExp(
-                evaluations[0] ? exactMatchRegexExpression : boundaryMatchRegexExpression,
-                flags,
-              ),
-              definition,
-            )
-          }
-        })
+        const flags = caseSensitive.value ? 'g' : 'gi';
+        const filterWord = word.replaceAll(/([^\s\w])/g, '\\$1')
+        newText = newText.replaceAll(new RegExp(`(^|\\s|[-])(${filterWord})(?=([-=,?!]|\\s|$))`, flags), `$1${definition}`)
       })
-      return words.join(' ')
+      return newText
+    }
+
+    const elaborateRules = (text: string) => {
+      const dictionaryRules: Array<DictionaryRule> = []
+      if (!enableDictionary.value) return dictionaryRules
+
+      let input = text;
+      definitions.value.forEach(([word, definition]) => {
+        const transform: DictionaryRule = {
+          keyword: definition,
+          replace: word,
+          indices: []
+        }
+
+        let currentIndexOffset = 0;
+
+        const filterWord = word.replaceAll(/([^\s\w])/gi, '\\$1')
+        const rex = new RegExp(`(^|\\s|[-])(${filterWord})(?=([-=,?!]|\\s|$))`, 'gi')
+        while (rex.test(input))
+        {
+          input = input.substring(rex.lastIndex)
+          currentIndexOffset += (rex.lastIndex - word.length)
+          transform.indices.push(currentIndexOffset);
+          currentIndexOffset += definition.length
+        }
+        
+        if (transform.indices.length > 0)
+        {
+          dictionaryRules.push(transform);
+        }
+      })
+      return dictionaryRules
     }
 
     return {
@@ -99,6 +117,7 @@ export const useDictionaryStore = defineStore(
       caseSensitive,
       definitions,
       translateText,
+      elaborateRules,
       updateDefinition: (index: number, definition: [string, string]) => {
         definitions.value.splice(index, 1, definition)
       },

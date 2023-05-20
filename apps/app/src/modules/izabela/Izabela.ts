@@ -42,6 +42,7 @@ export default () => {
     message
       .isReady()
       .then(() => {
+        socket.emit('message:caption', message.getCaption());
         socket.emit('message:start', socketPayload)
         return message.play()
       })

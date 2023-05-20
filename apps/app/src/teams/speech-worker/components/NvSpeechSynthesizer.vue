@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { v5 as uuid, NIL } from 'uuid'
 import izabela from '@/modules/izabela'
 import type { IzabelaMessage } from '@/modules/izabela/types'
 import {
@@ -36,7 +37,9 @@ const onMessage = async (payload: string | IzabelaMessage) => {
         })
       : null
     console.log('Translated message:', translatedMessage)
+
     message = {
+      id: uuid(payload, NIL),
       voice,
       message: cleanMessage,
       originalMessage: payload,
@@ -49,6 +52,7 @@ const onMessage = async (payload: string | IzabelaMessage) => {
         voice,
         translatedText: translatedMessage,
         text: cleanMessage,
+        dictionaryRules: []
       }),
       command: getMessageCommand(payload),
     }
@@ -65,6 +69,7 @@ const onMessage = async (payload: string | IzabelaMessage) => {
         voice,
         translatedText: payload.translatedMessage,
         text: cleanMessage,
+        dictionaryRules: []
       }),
     }
   }

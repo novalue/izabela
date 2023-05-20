@@ -22,20 +22,19 @@ registerEngine({
     const speechStore = useSpeechStore()
     return speechStore.hasUniversalApiCredentials || Object.values(getCredentials()).every(Boolean)
   },
-  getPayload({ text, translatedText, voice: v }) {
+  getPayload({ text, translatedText, voice: v, dictionaryRules }) {
     const selectedVoice = getSelectedVoice()
     const voice: any = pick(v || selectedVoice, ['name', 'ssmlGender', 'languageCode'])
     // eslint-disable-next-line prefer-destructuring
     voice.languageCode = selectedVoice.languageCodes[0]
     return {
-      input: {
-        text: translatedText || text,
-      },
+      text: translatedText || text,
       voice,
       audioConfig: {
         audioEncoding: 'MP3',
         volumeGainDb: 0,
       },
+      dictionaryRules
     }
   },
   getLanguageCode(voice) {

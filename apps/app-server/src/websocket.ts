@@ -40,6 +40,7 @@ export default (() => {
         ;[
           'message:load',
           'message:start',
+          'message:caption',
           'message:end',
           'message:error',
           'window:focus',

@@ -1,8 +1,9 @@
 import { RequestHandler } from 'express'
 import say from 'say'
-import { handleError } from '../../utils/requests'
+import { handleError } from '@/utils/requests'
+import { WordBoundary, SpeechSynthesizerAnswer, getWordBoundaryType } from '@/utils/speech-apis/types'
 import path from 'path'
-import izabelaServer from '../../server'
+import izabelaServer from '@/server'
 import { v4 as uuid } from 'uuid'
 import fs from 'fs'
 
@@ -40,26 +41,54 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
       fs.mkdirSync(path.parse(outputFile).dir, { recursive: true })
       fs.writeFileSync(outputFile, '')
 
-      await new Promise((resolve, reject) => {
+      const speechSynthesizerContent: SpeechSynthesizerAnswer = await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
+        const answer: SpeechSynthesizerAnswer = {
+          caption: [],
+          audio: ''
+        }
+
         say.export(text, voice, speed, outputFile, (err) => {
           if (err) {
             reject(err)
+          } else {
+            let textOffset = 0
+            let textMoment = 0
+
+            const textSplit: string[] = text.split(' ')
+            textSplit.forEach((word) => {
+              let wordOffset = word.indexOf(text, textOffset)
+              let wordDuration = (10 * 1000) * 450    // 450 ms
+              let wordMoment = textMoment
+
+              const wordBoundary: WordBoundary = {
+                type: getWordBoundaryType(word),
+                text: word,
+                offset: wordOffset,
+                length: word.length,
+                duration: wordDuration,
+                moment: wordMoment
+              }
+              answer.caption.push(wordBoundary)
+
+              textOffset = wordOffset + word.length
+              textMoment = wordMoment + wordDuration
+            })
+
+            answer.audio = fs.readFileSync(outputFile).toString('base64')
+            fs.unlinkSync(outputFile)
+
+            resolve(answer)
           }
-          resolve(true)
         })
-      })
-
-      const stat = fs.statSync(outputFile)
-      const total = stat.size
-
-      res.writeHead(200, {
-        'Content-Length': total,
-        'Content-Type': 'audio/mp3',
-      })
-      const stream = fs.createReadStream(outputFile).pipe(res)
-      stream.on('finish', () => {
+      }).catch((err) => {
+        console.log(err)
+        const answer : SpeechSynthesizerAnswer = {caption: [], audio: ''}
+        answer.audio = fs.readFileSync(outputFile).toString('base64')
         fs.unlinkSync(outputFile)
+        return answer
       })
+
+      res.status(200).json(speechSynthesizerContent)
     } catch (e: any) {
       if (fs.existsSync(outputFile)) {
         fs.unlinkSync(outputFile)

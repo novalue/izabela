@@ -20,13 +20,14 @@ registerEngine({
   hasCredentials() {
     return Object.values(getCredentials()).every(Boolean)
   },
-  getPayload({ text, translatedText, voice: v }) {
+  getPayload({ text, translatedText, voice: v, dictionaryRules }) {
     const voice = v || getSelectedVoice()
     return {
       text: translatedText || text,
       voice,
       stability: getProperty('stability'),
       similarity_boost: getProperty('similarity_boost'),
+      dictionaryRules
     }
   },
   getLanguageCode() {

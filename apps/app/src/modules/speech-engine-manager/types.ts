@@ -5,6 +5,7 @@ import { SpeechCommand } from '@/features/speech/types'
 
 export type Credentials = { [key: string]: any }
 export type Payload = { [key: string]: any }
+export type DictionaryRule = { [key: string]: any }
 
 export interface SpeechEngine {
   id: string
@@ -13,7 +14,7 @@ export interface SpeechEngine {
   getSelectedVoice: () => any
   getCredentials: () => Credentials
   getLanguageCode: (voice?: any) => string
-  getPayload: (options: { text: string; voice: any; translatedText: string | null }) => Payload
+  getPayload: (options: { text: string; voice: any; translatedText: string | null, dictionaryRules: Array<DictionaryRule> }) => Payload
   synthesizeSpeech: (context: {
     credentials: Credentials
     payload: Payload

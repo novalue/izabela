@@ -26,7 +26,7 @@ registerEngine({
     const speechStore = useSpeechStore()
     return speechStore.hasUniversalApiCredentials || Object.values(getCredentials()).every(Boolean)
   },
-  getPayload({ text, translatedText, voice: v }) {
+  getPayload({ text, translatedText, voice: v, dictionaryRules }) {
     const voice = v || getSelectedVoice()
     let newText = text
     let expression
@@ -34,6 +34,9 @@ registerEngine({
     if (commandString.startsWith('/')) {
       const command = commands(voice).find(({ name }) => commandString.startsWith(`/${name}`))
       newText = newText.replace(commandString, '')
+      newText = newText.replaceAll('&', '&amp;')
+      newText = newText.replaceAll('<', '&lt;')
+      newText = newText.replaceAll('>', '&gt;')
       if (command) {
         expression = command.value
       }
@@ -49,6 +52,7 @@ registerEngine({
       ssml,
       text: translatedText || newText,
       voice: v || getSelectedVoice(),
+      dictionaryRules
     }
   },
   getLanguageCode(voice) {

@@ -43,10 +43,11 @@ registerEngine({
   getCredentials() {
     return {}
   },
-  getPayload({ text, translatedText, voice }) {
+  getPayload({ text, translatedText, voice, dictionaryRules }) {
     return {
       text: translatedText || text,
       voice: voice || getSelectedVoice(),
+      dictionaryRules
     }
   },
   getLanguageCode() {

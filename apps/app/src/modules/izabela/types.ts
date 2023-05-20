@@ -2,6 +2,15 @@ import { SpeechEngine } from '@/modules/speech-engine-manager/types'
 
 export type IzabelaMessageEvent = 'started' | 'ended' | 'progress' | 'error'
 
+export type IzabelaWordBoundary = {
+  type: string
+  text: string
+  offset: number
+  length: number
+  duration: number
+  moment: number
+}
+
 export interface IzabelaMessage {
   id?: string
   message: string

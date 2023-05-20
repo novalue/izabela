@@ -1,4 +1,5 @@
 import { v4 as uuid } from 'uuid'
+import { Buffer } from 'buffer'
 import mitt from 'mitt'
 import { Promise } from 'bluebird'
 import { getEngineById } from '@/modules/speech-engine-manager'
@@ -7,7 +8,7 @@ import { useSettingsStore } from '@/features/settings/store'
 import { blobToBase64, Deferred } from '@packages/toolbox'
 import { useMessagesStore, usePlayingMessageStore } from '@/features/messages/store'
 import objectHash from 'object-hash'
-import { IzabelaMessageEvent, IzabelaMessagePayload } from './types'
+import { IzabelaWordBoundary, IzabelaMessageEvent, IzabelaMessagePayload } from './types'
 
 export default (messagePayload: IzabelaMessagePayload) => {
   const {
@@ -18,10 +19,13 @@ export default (messagePayload: IzabelaMessagePayload) => {
     credentials,
     payload,
   } = messagePayload
+
   const id = existingId || uuid()
+  const caption: IzabelaWordBoundary[] = []
   const audio = new Audio()
   const emitter = mitt()
   const audioDownloaded = Deferred()
+  const captionLoaded = Deferred()
   const audioLoaded = Deferred()
   const playingMessageStore = usePlayingMessageStore()
   let audioElements: (HTMLAudioElement | null)[] = []
@@ -104,12 +108,13 @@ export default (messagePayload: IzabelaMessagePayload) => {
   }
 
   function isReady() {
-    return Promise.all([audioDownloaded.promise, audioLoaded.promise])
+    return Promise.all([audioDownloaded.promise, captionLoaded.promise, audioLoaded.promise])
   }
 
   async function downloadAudio() {
     if (typeof window) {
       const { ElectronFilesystem } = window
+
       const cachedAudio = await ElectronFilesystem.getCachedAudio(getCacheId())
       if (cachedAudio) {
         const res = await fetch(cachedAudio)
@@ -144,9 +149,29 @@ export default (messagePayload: IzabelaMessagePayload) => {
     }
   }
 
-  function loadAudio(blob: Blob) {
-    audio.src = URL.createObjectURL(blob)
+  function loadCaption(captionArray: IzabelaWordBoundary[]) {
+    captionArray.forEach((item) => {
+      caption.push(item)
+    })
+
+    captionLoaded.resolve(true)
+  }
+
+  function loadAudioFromBlob(audioBlob: Blob) {
+    audio.src = URL.createObjectURL(audioBlob)
     audio.load()
+  }
+
+  function loadAudioFromBase64(audioBase64: string) {
+    const audioData = new Blob([Buffer.from(audioBase64, 'base64')], {
+      type: 'audio/mp3',
+    })
+    audio.src = URL.createObjectURL(audioData)
+    audio.load()
+  }
+
+  function getCaption() {
+    return caption
   }
 
   function getAudioProgress() {
@@ -189,14 +214,29 @@ export default (messagePayload: IzabelaMessagePayload) => {
   function onError(e: ErrorEvent) {
     emitter.emit('error')
     audioDownloaded.reject(e)
+    captionLoaded.reject(e)
     audioLoaded.reject(e)
   }
 
   if (!disableAutoplay) {
     addEventListeners()
     downloadAudio()
-      .then((blob) => {
-        loadAudio(blob)
+      .then(async (blob) =>  {
+        // TODO: change depending on engine
+        const engine = getEngineById(engineName)
+        if (!engine) throw new Error('Izabela Message: Selected engine was not found')
+
+        if (engineName === 'izabelatts' || engineName === 'samtts' || engineName === 'iwtts' || engineName === 'aptts' || engineName === 'uberduck' ||
+            engineName === 'gctts' || engineName === '11labstts' || engineName === 'customtts' || engineName === 'animalesetts' || !engine.store.getProperty('useLocalCredentials')) {
+          loadCaption([])
+          loadAudioFromBlob(blob)
+        } else {
+          const blobData: Uint8Array = new Uint8Array(await blob.arrayBuffer())
+          const synthesizerData = JSON.parse(new TextDecoder().decode(blobData))
+
+          loadCaption(synthesizerData.caption)
+          loadAudioFromBase64(synthesizerData.audio)
+        }
       })
       .catch((reason) => onError(reason))
   }
@@ -206,6 +246,7 @@ export default (messagePayload: IzabelaMessagePayload) => {
     isReady,
     play,
     on,
+    getCaption,
     downloadAudio,
     pause,
     resume,

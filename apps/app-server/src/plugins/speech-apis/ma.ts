@@ -1,17 +1,18 @@
 import { RequestHandler } from 'express'
 import axios from 'axios'
-import { handleError } from '../../utils/requests'
+import { handleError } from '@/utils/requests'
+import { WordBoundary, SpeechSynthesizerAnswer } from '@/utils/speech-apis/types'
 import path from 'path'
-import izabelaServer from '../../server'
+import izabelaServer from '@/server'
 import { v4 as uuid } from 'uuid'
 import fs from 'fs'
 import {
   AudioConfig,
+  PropertyId,
   SpeechConfig,
   SpeechSynthesisOutputFormat,
   SpeechSynthesizer,
 } from 'microsoft-cognitiveservices-speech-sdk'
-import util from 'util'
 
 const plugin: Izabela.Server.Plugin = ({ app }) => {
   const listVoicesHandler: RequestHandler = async (
@@ -57,17 +58,41 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
       const speechConfig = SpeechConfig.fromSubscription(apiKey, region)
       speechConfig.speechSynthesisLanguage = payload.voice.Locale
       speechConfig.speechSynthesisVoiceName = payload.voice.ShortName
-      speechConfig.speechSynthesisOutputFormat =
-        SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
+      speechConfig.speechSynthesisOutputFormat = SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
+      speechConfig.setProperty(PropertyId.SpeechServiceResponse_RequestWordBoundary, "true")
+	  
       const audioConfig = AudioConfig.fromAudioFileOutput(outputFile)
-
       const synthesizer = new SpeechSynthesizer(speechConfig, audioConfig)
-      const audioContent: ArrayBuffer = await new Promise((resolve, reject) => {
+
+      const speechSynthesizerContent: SpeechSynthesizerAnswer = await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
+        const answer: SpeechSynthesizerAnswer = {
+          caption: [],
+          audio: ''
+        }
+
+        synthesizer.wordBoundary = function(_, event) {
+          const wordBoundary: WordBoundary = {
+            type: event.boundaryType,
+            text: event.text,
+            offset: event.textOffset,
+            length: event.wordLength,
+            duration: event.duration,
+            moment: event.audioOffset
+          }
+          answer.caption.push(wordBoundary)
+        }
+
         if (payload.ssml) {
           synthesizer.speakSsmlAsync(
             payload.ssml,
             (result) => {
-              resolve(result.audioData)
+              try {
+                fs.writeFileSync(outputFile, Buffer.from(result.audioData))
+                answer.audio = fs.readFileSync(outputFile).toString('base64')
+                fs.unlinkSync(outputFile)
+              } catch(_) {}
+
+              resolve(answer)
               synthesizer.close()
             },
             (error) => {
@@ -79,7 +104,13 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
           synthesizer.speakTextAsync(
             payload.text,
             (result) => {
-              resolve(result.audioData)
+              try {
+                fs.writeFileSync(outputFile, Buffer.from(result.audioData))
+                answer.audio = fs.readFileSync(outputFile).toString('base64')
+                fs.unlinkSync(outputFile)
+              } catch(_) {}
+
+              resolve(answer)
               synthesizer.close()
             },
             (error) => {
@@ -88,22 +119,16 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
             },
           )
         }
+      }).catch(() => {
+        const answer : SpeechSynthesizerAnswer = {caption: [], audio: ''}
+        try {
+          answer.audio = fs.readFileSync(outputFile).toString('base64')
+          fs.unlinkSync(outputFile)
+        } catch(_) {}
+        return answer
       })
 
-      const writeFile = util.promisify(fs.writeFile)
-
-      await writeFile(outputFile, Buffer.from(audioContent), 'binary')
-      const stat = fs.statSync(outputFile)
-      const total = stat.size
-
-      res.writeHead(200, {
-        'Content-Length': total,
-        'Content-Type': 'audio/mp3',
-      })
-      const stream = fs.createReadStream(outputFile).pipe(res)
-      stream.on('finish', () => {
-        fs.unlinkSync(outputFile)
-      })
+      res.status(200).json(speechSynthesizerContent)
     } catch (e: any) {
       if (fs.existsSync(outputFile)) {
         fs.unlinkSync(outputFile)
