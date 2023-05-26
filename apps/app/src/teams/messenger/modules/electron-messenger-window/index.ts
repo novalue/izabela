@@ -1,5 +1,5 @@
 import ElectronWindowManager from '@/modules/electron-window-manager'
-import iohook, { IOHookEvent } from '@/modules/node-iohook'
+import { mouse } from '@/modules/node-mouse'
 import { throttle } from 'lodash'
 import { Hitbox } from '@/modules/vue-hitboxes/types'
 import { BrowserWindow, screen, shell } from 'electron'
@@ -63,6 +63,14 @@ export const ElectronMessengerWindow = () => {
       resolve(true)
     })
 
+  const ensureNativeFocus = () => {
+    const window = getWindow()
+    if (window) {
+      const windowNativeHandle = getNativeWindowHandleInt(window)
+      user32.SetForegroundWindow(windowNativeHandle)
+    }
+  }
+
   const focus = (context: 'mouse' | 'keyboard') =>
     new Promise((resolve, reject) => {
       messengerWindowStore?.$patch({ focusContext: context })
@@ -70,6 +78,9 @@ export const ElectronMessengerWindow = () => {
       if (window) {
         if (!isFocused) {
           foregroundWindow = user32.GetForegroundWindow()
+          // to prevent shenanigans with some softwares (*coughs* League of Legends *coughs*)
+          // this makes sure to blur first with ffi-napi for safe measures
+          user32.SetForegroundWindow(0)
           isFocused = true
           // window.once('show', () => {
           //   /* The focus needs to be delayed after the show() to actually focus properly... */
@@ -85,6 +96,13 @@ export const ElectronMessengerWindow = () => {
           window.setIgnoreMouseEvents(false)
           window.show() // Fixes focus properly with Hardware Acceleration for some reasons
           window.focus() // needed for immediate focus in case the window is already shown
+
+          // In applications like League of Legends, the window doesn't always receive focus
+          // but we can force it manually once we're sure the window is shown 100%.
+          // Only possible with a timeout atm.
+          setTimeout(() => {
+            ensureNativeFocus()
+          }, 100)
         }
       } else {
         reject()
@@ -139,12 +157,12 @@ export const ElectronMessengerWindow = () => {
       }
     })
 
-  const onMouseMove = (event: IOHookEvent) => {
+  const onMouseMove = (mouseX = 0, mouseY = 0) => {
     if (!hitboxesStore) return
     const window = getWindow()
     if (window) {
       if (!window.isDestroyed() && window.isVisible()) {
-        const { x: mouseX = 0, y: mouseY = 0 } = event
+        // const { x: mouseX = 0, y: mouseY = 0 } = event
         const [windowX, windowY] = window.getPosition()
         const { hitboxes } = hitboxesStore
         const isWithinAnyHitboxes = hitboxes.some(({ x, y, w, h }: Hitbox) => {
@@ -182,10 +200,26 @@ export const ElectronMessengerWindow = () => {
       window.setBounds(display.bounds)
     }
   }
+  const zoomIn = () => {
+    const window = getWindow()
+    if (!window) return
+    window.webContents.zoomLevel += 0.5
+  }
 
+  const zoomOut = () => {
+    const window = getWindow()
+    if (!window) return
+    window.webContents.zoomLevel -= 0.5
+  }
+
+  const resetZoom = () => {
+    const window = getWindow()
+    if (!window) return
+    window.webContents.zoomLevel = 0
+  }
   const addEventListeners = () => {
     const window = getWindow()
-    iohook.on('mousemove', throttle(onMouseMove, 150))
+    mouse.on('move', throttle(onMouseMove, 150))
 
     if (window) {
       window.on('show', () => {
@@ -238,6 +272,10 @@ export const ElectronMessengerWindow = () => {
     start,
     setDisplay,
     isReady,
+    ensureNativeFocus,
+    zoomIn,
+    zoomOut,
+    resetZoom,
   }
 }
 

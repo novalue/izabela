@@ -20,6 +20,32 @@
               @update:modelValue="(value) => settingsStore.$patch({ hideWindowOnMessage: value })"
             />
           </NvGroup>
+          <NvDivider direction="horizontal" />
+          <NvGroup justify="apart" no-wrap spacing="5">
+            <NvStack>
+              <NvText type="label">Background dim opacity</NvText>
+            </NvStack>
+            <NvGroup>
+              <NvRangeInput
+                :modelValue="settingsStore.backgroundDimOpacity"
+                max="100"
+                min="0"
+                step="1"
+                @update:modelValue="
+                  (value) => settingsStore.$patch({ backgroundDimOpacity: value })
+                "
+              />
+              <NvNumberInput
+                :modelValue="settingsStore.backgroundDimOpacity"
+                max="100"
+                min="0"
+                step="1"
+                @update:modelValue="
+                  (value) => settingsStore.$patch({ backgroundDimOpacity: value })
+                "
+              />
+            </NvGroup>
+          </NvGroup>
         </NvStack>
       </NvCard>
     </NvStack>
@@ -42,14 +68,10 @@
           <NvDivider direction="horizontal" />
           <NvGroup align="start" justify="apart" no-wrap spacing="5">
             <NvStack>
-              <NvText type="label">Show Messenger window (for compatibility)</NvText>
+              <NvText type="label">Show Messenger window (alternative)</NvText>
               <NvText
-                >Applications sometimes block system-wide keyboard shortcuts<br />
-                Use this shortcut if the Messenger window doesn't show with the shortcut above
-              </NvText>
-              <NvText type="caption"
-                ><strong>NOTE:</strong> The Messenger window will not be focused when shown with
-                this shortcut
+                >If an application is preventing the window from showing with the shortcut above,
+                try this one
               </NvText>
             </NvStack>
             <NvKeybinding
@@ -123,32 +145,6 @@
           <!--              @update:modelValue="(value) => settingsStore.$patch({ enableBackgroundDim: value })"-->
           <!--            />-->
           <!--          </NvGroup>-->
-          <NvDivider direction="horizontal" />
-          <NvGroup justify="apart" no-wrap spacing="5">
-            <NvStack>
-              <NvText type="label">Background dim opacity</NvText>
-            </NvStack>
-            <NvGroup>
-              <NvRangeInput
-                :modelValue="settingsStore.backgroundDimOpacity"
-                max="100"
-                min="0"
-                step="1"
-                @update:modelValue="
-                  (value) => settingsStore.$patch({ backgroundDimOpacity: value })
-                "
-              />
-              <NvNumberInput
-                :modelValue="settingsStore.backgroundDimOpacity"
-                max="100"
-                min="0"
-                step="1"
-                @update:modelValue="
-                  (value) => settingsStore.$patch({ backgroundDimOpacity: value })
-                "
-              />
-            </NvGroup>
-          </NvGroup>
         </NvStack>
       </NvCard>
     </NvStack>

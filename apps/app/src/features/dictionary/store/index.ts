@@ -6,7 +6,7 @@ import { DictionaryRule } from '@/modules/speech-engine-manager/types'
 export const useDictionaryStore = defineStore(
   'dictionary',
   () => {
-    const enableDictionary = ref(false)
+    const enableDictionary = ref(true)
     const matchExactWord = ref(true)
     const caseSensitive = ref(false)
     const definitions = ref<[string, string][]>([

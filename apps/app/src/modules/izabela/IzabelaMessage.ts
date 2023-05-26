@@ -57,6 +57,11 @@ export default (messagePayload: IzabelaMessagePayload) => {
     cancelled = true
     audio.pause()
     audioElements.forEach((audioEl) => audioEl?.pause())
+    playingMessageStore.$patch({
+      id: null,
+      isPlaying: false,
+      progress: 0,
+    })
     emitter.emit('ended')
   }
 
@@ -180,22 +185,28 @@ export default (messagePayload: IzabelaMessagePayload) => {
 
   function addEventListeners() {
     audio.addEventListener('timeupdate', () => {
+      if (cancelled) return
       playingMessageStore.$patch({
         progress: audio.currentTime / audio.duration || 0,
       })
     })
     audio.addEventListener('ended', () => {
+      if (cancelled) return
       playingMessageStore.$patch({
+        id: null,
         isPlaying: false,
+        progress: 0,
       })
     })
     audio.addEventListener('play', () => {
+      if (cancelled) return
       playingMessageStore.$patch({
         id,
         isPlaying: true,
       })
     })
     audio.addEventListener('pause', () => {
+      if (cancelled) return
       playingMessageStore.$patch({
         id,
         isPlaying: false,
