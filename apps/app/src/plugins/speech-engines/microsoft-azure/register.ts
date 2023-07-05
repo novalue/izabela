@@ -41,6 +41,9 @@ registerEngine({
         expression = command.value
       }
     }
+
+    newText = newText.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gi, '$1 says:$3')
+
     const ssml = expression
       ? `<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" version="1.0" xml:lang="en-US"><voice name="${
           voice.ShortName

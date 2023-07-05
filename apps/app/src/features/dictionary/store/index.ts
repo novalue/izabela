@@ -74,7 +74,7 @@ export const useDictionaryStore = defineStore(
       filteredDefinitions.value.forEach(([word, definition]) => {
         const flags = caseSensitive.value ? 'g' : 'gi';
         const filterWord = word.replaceAll(/([^\s\w])/g, '\\$1')
-        newText = newText.replaceAll(new RegExp(`(^|\\s|[-])(${filterWord})(?=([-=,?!]|\\s|$))`, flags), `$1${definition}`)
+        newText = newText.replaceAll(new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags), `$1${definition}`)
       })
       return newText
     }
@@ -94,7 +94,7 @@ export const useDictionaryStore = defineStore(
         let currentIndexOffset = 0;
 
         const filterWord = word.replaceAll(/([^\s\w])/gi, '\\$1')
-        const rex = new RegExp(`(^|\\s|[-])(${filterWord})(?=([-=,?!]|\\s|$))`, 'gi')
+        const rex = new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, 'gi')
         while (rex.test(input))
         {
           input = input.substring(rex.lastIndex)

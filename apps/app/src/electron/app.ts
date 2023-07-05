@@ -131,7 +131,7 @@ const App = () => {
       exec('Register app listeners', () => addEventListeners()),
       exec('Configure app defaults', () => configureAppDefaults()),
       exec('Register electron-pinia', () => registerElectronPinia()),
-      exec('Register updater', () => registerElectronUpdater()),
+      ///exec('Register updater', () => registerElectronUpdater()),
       exec('Register startup', () => registerElectronStartup()),
       exec('Register debug', () => registerElectronDebug()),
       exec('Bridge modules', () => bridgeModules()),
