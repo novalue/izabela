@@ -70,9 +70,10 @@ export const useDictionaryStore = defineStore(
     const translateText = (text: string) => {
       if (!enableDictionary.value) return text
 
+      const flags = caseSensitive.value ? 'g' : 'gi';
+
       let newText = text
       filteredDefinitions.value.forEach(([word, definition]) => {
-        const flags = caseSensitive.value ? 'g' : 'gi';
         const filterWord = word.replaceAll(/([^\s\w])/g, '\\$1')
         newText = newText.replaceAll(new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags), `$1${definition}`)
       })
@@ -83,6 +84,8 @@ export const useDictionaryStore = defineStore(
       const dictionaryRules: Array<DictionaryRule> = []
       if (!enableDictionary.value) return dictionaryRules
 
+      const flags = caseSensitive.value ? 'g' : 'gi';
+
       let input = text;
       definitions.value.forEach(([word, definition]) => {
         const transform: DictionaryRule = {
@@ -92,19 +95,35 @@ export const useDictionaryStore = defineStore(
         }
 
         let currentIndexOffset = 0;
+        let previousIndexEnd = 0;
 
         const filterWord = word.replaceAll(/([^\s\w])/gi, '\\$1')
         const rex = new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, 'gi')
         while (rex.test(input))
         {
-          input = input.substring(rex.lastIndex)
-          currentIndexOffset += (rex.lastIndex - word.length)
+          currentIndexOffset += (rex.lastIndex - word.length - previousIndexEnd)
           transform.indices.push(currentIndexOffset);
-          currentIndexOffset += definition.length
+
+          const gap = (definition.length - word.length);
+          for (let t = 0; t < dictionaryRules.length; t += 1)
+          {
+            const rule = dictionaryRules[t];
+            for (let i = 0; i < rule.indices.length; i += 1)
+            {
+              if (rule.indices[i] > currentIndexOffset)
+              {
+                rule.indices[i] += gap;
+              }
+            }
+          }
+
+          currentIndexOffset += definition.length;
+          previousIndexEnd = rex.lastIndex;
         }
-        
+
         if (transform.indices.length > 0)
         {
+          input = input.replaceAll(new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags), `$1${definition}`)
           dictionaryRules.push(transform);
         }
       })
