@@ -15,9 +15,10 @@ const createTray = (): Promise<Tray> =>
       return Menu.buildFromTemplate([
         {
           label: 'Restart',
+          type: 'normal',
           click: () => {
-            app.relaunch()
             app.exit()
+            app.relaunch()
           },
         },
         {
@@ -46,7 +47,12 @@ const createTray = (): Promise<Tray> =>
           ],
         },
         { type: 'separator' },
-        { label: 'Exit', type: 'normal', role: 'quit' },
+        { label: 'Exit', 
+          type: 'normal',
+          click: () => {
+            app.exit()
+          }
+        },
       ])
     }
 
