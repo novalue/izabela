@@ -7,17 +7,38 @@ import { useDictionaryStore } from '@/features/dictionary/store'
 const SpeechEngineManager = () => {
   const engines = ref<SpeechEngine[]>([])
 
+  const commands: SpeechEngine['commands'] = (voice) =>
+    (voice.StyleList || []).map((style: string) => ({ name: style, value: style }))
+
   async function withDictionary(speechEngine: SpeechEngine): Promise<SpeechEngine> {
     const dictionaryStore = useDictionaryStore()
     await dictionaryStore.$whenReady()
     return {
       ...speechEngine,
-      getPayload: (options) =>
-        speechEngine.getPayload({
+      getPayload: (options) => {
+        const voice = options.voice || speechEngine.getSelectedVoice()
+        let newText = options.text
+        let intonation = null
+
+        const commandString = newText.split(' ')[0] || ''
+        if (commandString.startsWith('/')) {
+          const command = commands(voice).find(({ name }) => commandString.startsWith(`/${name}`))
+          newText = newText.replace(commandString, '')
+          newText = newText.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gi, '$2 says:$3')
+          if (command) {
+            intonation = command.value
+          }
+        } else {
+          newText = newText.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gi, '$2 says:$3')
+        }
+
+        return speechEngine.getPayload({
           ...options,
-          text: dictionaryStore.translateText(options.text),
-          dictionaryRules: dictionaryStore.elaborateRules(options.text)
-        }),
+          expression: intonation,
+          text: dictionaryStore.translateText(newText),
+          dictionaryRules: dictionaryStore.elaborateRules(newText)
+        })
+      }
     }
   }
 

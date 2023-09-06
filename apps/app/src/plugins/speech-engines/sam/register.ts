@@ -62,6 +62,7 @@ registerEngine({
   getLanguageCode() {
     return DEFAULT_LANGUAGE_CODE
   },
+  commands: (voice: any) => [],
   synthesizeSpeech({ payload }) {
     const sam = new SamJs(payload.voice)
     const audioBuffer = sam.buf8(payload.text)

@@ -53,6 +53,7 @@ registerEngine({
   getLanguageCode() {
     return DEFAULT_LANGUAGE_CODE
   },
+  commands: (voice: any) => [],
   synthesizeSpeech({ payload }) {
     const audio = animalese.getAudio(payload.text, payload.voice.shortened, payload.voice.pitch)
     const blob = dataURItoBlob(audio.dataURI)

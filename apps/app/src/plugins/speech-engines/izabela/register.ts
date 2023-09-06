@@ -31,6 +31,7 @@ registerEngine({
   getLanguageCode() {
     return DEFAULT_LANGUAGE_CODE
   },
+  commands: (voice: any) => [],
   synthesizeSpeech({ payload }) {
     return api().post<Blob>(
       '/tts/izabela/synthesize-speech',

@@ -40,6 +40,7 @@ registerEngine({
   getLanguageCode(voice) {
     return (voice || getSelectedVoice()).languageCodes[0]
   },
+  commands: (voice: any) => [],
   synthesizeSpeech({ credentials, payload }) {
     return api(getProperty('useLocalCredentials') ? 'local' : 'remote').post<Blob>(
       '/tts/google-cloud/synthesize-speech',

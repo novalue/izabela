@@ -26,23 +26,11 @@ registerEngine({
     const speechStore = useSpeechStore()
     return speechStore.hasUniversalApiCredentials || Object.values(getCredentials()).every(Boolean)
   },
-  getPayload({ text, translatedText, voice: v, dictionaryRules }) {
-    const voice = v || getSelectedVoice()
+  getPayload({ text, expression, translatedText, voice, dictionaryRules }) {
     let newText = text
-    let expression
-    const commandString = newText.split(' ')[0] || ''
-    if (commandString.startsWith('/')) {
-      const command = commands(voice).find(({ name }) => commandString.startsWith(`/${name}`))
-      newText = newText.replace(commandString, '')
-      newText = newText.replaceAll('&', '&amp;')
-      newText = newText.replaceAll('<', '&lt;')
-      newText = newText.replaceAll('>', '&gt;')
-      if (command) {
-        expression = command.value
-      }
-    }
-
-    newText = newText.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gi, '$1 says:$3')
+    newText = newText.replaceAll('&', '&amp;')
+    newText = newText.replaceAll('<', '&lt;')
+    newText = newText.replaceAll('>', '&gt;')
 
     const ssml = expression
       ? `<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" version="1.0" xml:lang="en-US"><voice name="${
@@ -54,7 +42,7 @@ registerEngine({
     return {
       ssml,
       text: translatedText || newText,
-      voice: v || getSelectedVoice(),
+      voice,
       dictionaryRules
     }
   },

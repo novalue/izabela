@@ -33,6 +33,7 @@ registerEngine({
   getLanguageCode() {
     return DEFAULT_LANGUAGE_CODE
   },
+  commands: (voice: any) => [],
   synthesizeSpeech({ credentials, payload }) {
     return api(getProperty('useLocalCredentials') ? 'local' : 'remote').post<Blob>(
       '/tts/uberduck/synthesize-speech',

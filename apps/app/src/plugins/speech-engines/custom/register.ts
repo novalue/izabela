@@ -31,6 +31,7 @@ registerEngine({
   getLanguageCode(voice) {
     return (voice || getSelectedVoice()).languageCode || DEFAULT_LANGUAGE_CODE
   },
+  commands: (voice: any) => [],
   synthesizeSpeech({ payload, credentials }) {
     const endpoint = getProperty('endpoint')
     return axios.post<Blob>(
