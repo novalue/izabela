@@ -20,6 +20,7 @@ export default () => {
 
   function endCurrentMessage() {
     currentlyPlayingMessage?.cancel()
+    currentlyPlayingMessage = null
   }
 
   function endAllMessages() {
@@ -29,22 +30,28 @@ export default () => {
   }
 
   function playMessage(message: ReturnType<typeof IzabelaMessage>) {
+    currentlyPlayingMessage = message
+
     const socketPayload = message.getSocketPayload()
+    
+    socket.emit('message:load', socketPayload)
+    
     const onEnd = (hasError?: boolean) => {
       if (hasError) socket.emit('message:error', socketPayload)
       socket.emit('message:end', socketPayload)
       onMessageEnd()
     }
-    currentlyPlayingMessage = message
-    message.on('ended', () => onEnd())
-    message.on('error', () => onEnd(true))
-    socket.emit('message:load', socketPayload)
-    message
-      .isReady()
+
+    message.isReady()
       .then(() => {
         socket.emit('message:caption', message.getCaption());
-        socket.emit('message:start', socketPayload)
-        return message.play()
+
+        message.on('ended', () => onEnd())
+        message.on('error', () => onEnd(true))
+        return message.play().then(() => { 
+          socket.emit('message:start', socketPayload)
+        })
+        .catch(console.error)
       })
       .catch(() => onEnd(true))
     return message

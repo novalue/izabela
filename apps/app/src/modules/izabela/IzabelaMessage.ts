@@ -76,40 +76,35 @@ export default (messagePayload: IzabelaMessagePayload) => {
   async function play() {
     const settingsStore = useSettingsStore()
     await settingsStore.$whenReady()
-    Promise.map(settingsStore.audioOutputs, async (deviceLabel: string) => {
-      // TODO: Some optimisation possible here
-      let mediaDevice
-
+    return Promise.map(settingsStore.audioOutputs, async (deviceLabel: string) => {
       try {
-        mediaDevice = await getMediaDeviceByLabel(deviceLabel)
+        const mediaDevice = await getMediaDeviceByLabel(deviceLabel)
+        
+        if (mediaDevice) {
+          const audioElement: any = document.createElement('audio')
+          audioElement.src = audio.src
+
+          await audioElement.setSinkId(mediaDevice.deviceId)
+          return audioElement
+        }
       } catch (error) {
         console.error(error)
-        return null
       }
-      if (mediaDevice) {
-        const audioElement: any = document.createElement('audio')
-        audioElement.src = audio.src
-
-        try {
-          await audioElement.setSinkId(mediaDevice.deviceId)
-        } catch (error) {
-          console.error(error)
-          return null
-        }
-        return audioElement
-      }
+      
       return null
     })
-      .then((res: typeof audioElements) => {
-        if (cancelled) return
-        if (!settingsStore.playSpeechOnDefaultPlaybackDevice) {
-          audio.volume = 0
-        }
-        audio.play()
-        audioElements = res
-        audioElements.forEach((audioEl) => audioEl && audioEl.play())
-      })
-      .catch(console.error)
+    .then((res: typeof audioElements) => {
+      if (cancelled) return Promise.reject(new Error("audio canceled before playing"))
+
+      if (!settingsStore.playSpeechOnDefaultPlaybackDevice) {
+        audio.volume = 0
+      }
+      audio.play()
+      audioElements = res
+      audioElements.forEach((audioEl) => audioEl && audioEl.play())
+
+      return Promise.resolve()
+    })
   }
 
   function isReady() {

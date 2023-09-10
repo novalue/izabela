@@ -49,6 +49,7 @@ const onMessage = async (payload: string | IzabelaMessage) => {
       engine: engine.id,
       credentials: engine.getCredentials(),
       payload: engine.getPayload({
+        expression: null,
         voice,
         translatedText: translatedMessage,
         text: cleanMessage,
@@ -66,6 +67,7 @@ const onMessage = async (payload: string | IzabelaMessage) => {
       ...payload,
       credentials: engine.getCredentials(),
       payload: engine.getPayload({
+        expression: null,
         voice,
         translatedText: payload.translatedMessage,
         text: cleanMessage,
