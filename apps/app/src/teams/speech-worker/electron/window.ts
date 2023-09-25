@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, Menu, MenuItem } from 'electron'
 import { ipcMain } from 'electron-postman'
 import path from 'path'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
@@ -26,6 +26,7 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
       backgroundThrottling: false,
       sandbox: false,
+      spellcheck: true
     },
   })
 
@@ -43,6 +44,35 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
   })
 
   ipcMain.registerBrowserWindow(name, window)
+
+  window.webContents.session.setSpellCheckerLanguages(['en-US'])
+  window.webContents.on('context-menu', (event, params) => {
+    const menu = new Menu()
+
+    // Add each spelling suggestion
+    for (const suggestion of params.dictionarySuggestions) {
+      menu.append(new MenuItem({
+        label: suggestion,
+        click: () => window.webContents.replaceMisspelling(suggestion)
+      }))
+    }
+
+    menu.append(new MenuItem({
+      type: "separator"
+    }))
+
+    // Allow users to add the misspelled word to the dictionary
+    if (params.misspelledWord) {
+      menu.append(
+        new MenuItem({
+          label: 'Add to dictionary',
+          click: () => window.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
+        })
+      )
+    }
+
+    menu.popup()
+  })
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     await window.loadURL(path.join(process.env.WEBPACK_DEV_SERVER_URL as string, name))
