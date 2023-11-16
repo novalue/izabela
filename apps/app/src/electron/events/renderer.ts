@@ -1,4 +1,4 @@
-import { processes } from '@/types/electron'
+import { processes, rendererProcesses } from '@/types/electron'
 import { IzabelaMessage } from '@/modules/izabela/types'
 
 const { ipc } = window
@@ -19,6 +19,12 @@ export const onIPCSay = (callback: (payload: IPCSayPayload) => any) => {
 
 export const emitIPCSay = (payload: IPCSayPayload) => {
   ipc.sendTo('speech-worker', 'say', payload)
+}
+
+export const emitIPCVoiceSpellcheckLocale = (locale: string) => {
+  processes.forEach((process) => {
+    ipc.sendTo(process, 'voice-spellcheck-locale', locale)
+  })
 }
 
 export const onIPCCancelCurrentMessage = (callback: () => any) => {

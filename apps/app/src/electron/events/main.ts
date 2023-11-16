@@ -1,4 +1,4 @@
-import { processes } from '@/types/electron'
+import { processes, rendererProcesses } from '@/types/electron'
 import { ipcMain } from 'electron-postman'
 
 export const onIPCProcessError = (callback: (error: Error, process: string) => any) => {
@@ -23,4 +23,12 @@ export const emitIPCOverlayInputCharacter = (character: string) => {
 
 export const emitIPCOverlayInputCommand = (command: string, args: any[] = []) => {
   ipcMain.sendTo('overlay', 'overlay-input-command', [command, ...args])
+}
+
+export const onIPCVoiceSpellcheckLocale = (callback: (process: string, locale: string) => void) => {
+  rendererProcesses.forEach((process) => {
+    ipcMain.on(process, 'voice-spellcheck-locale', (locale: string) =>
+      callback(process, locale),
+    )
+  })
 }

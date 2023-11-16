@@ -5,6 +5,7 @@ import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import electronSpeechWorkerWindow from '@/teams/speech-worker/modules/electron-speech-worker-window'
 import { getTopLeftWindow } from '@/electron/utils'
 import { windowHeight, windowWidth } from '@/teams/speech-worker/electron/const'
+import { onIPCVoiceSpellcheckLocale } from '@/electron/events/main'
 
 let window: BrowserWindow
 const createWindow = async (name: string): Promise<BrowserWindow> => {
@@ -44,7 +45,15 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
   })
 
   ipcMain.registerBrowserWindow(name, window)
-
+  onIPCVoiceSpellcheckLocale((process: string, locale: string) => {
+    if (name == process)
+    {
+      window.webContents.session.setSpellCheckerEnabled(false)
+      window.webContents.session.setSpellCheckerLanguages([locale])
+      window.webContents.session.setSpellCheckerEnabled(true)
+    }
+  })
+  
   window.webContents.session.setSpellCheckerLanguages(['en-US'])
   window.webContents.on('context-menu', (event, params) => {
     const menu = new Menu()

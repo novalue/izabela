@@ -2,6 +2,7 @@ import { app, BrowserWindow, screen, Menu, MenuItem } from 'electron'
 import path from 'path'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import { ipcMain } from 'electron-postman'
+import { onIPCVoiceSpellcheckLocale } from '@/electron/events/main'
 import electronMessengerWindow from '@/teams/messenger/modules/electron-messenger-window'
 
 let window: BrowserWindow
@@ -37,6 +38,14 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
   })
 
   ipcMain.registerBrowserWindow(name, window)
+  onIPCVoiceSpellcheckLocale((process: string, locale: string) => {
+    if (name == process)
+    {
+      window.webContents.session.setSpellCheckerEnabled(false)
+      window.webContents.session.setSpellCheckerLanguages([locale])
+      window.webContents.session.setSpellCheckerEnabled(true)
+    }
+  })
 
   window.webContents.session.setSpellCheckerLanguages(['en-US'])
   window.webContents.on('context-menu', (event, params) => {

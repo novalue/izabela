@@ -4,7 +4,10 @@
     :options="options"
     v-bind="{
       modelValue: getProperty('selectedVoice'),
-      'onUpdate:modelValue': (value) => setProperty('selectedVoice', purify(value)),
+      'onUpdate:modelValue': (value) => {
+        emitIPCVoiceSpellcheckLocale(value.Locale)
+        setProperty('selectedVoice', purify(value))
+      },
       ...$attrs,
     }"
     valueKey="Name"
@@ -14,6 +17,7 @@
 import { computed, watch } from 'vue'
 import { useQueryClient } from 'vue-query'
 import { NvSelect } from '@packages/ui'
+import { emitIPCVoiceSpellcheckLocale } from '@/electron/events/renderer'
 import { purify } from '@packages/toolbox'
 import { orderBy } from 'lodash'
 import { useSpeechStore } from '@/features/speech/store'

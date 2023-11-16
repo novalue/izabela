@@ -264,6 +264,7 @@ export default (messagePayload: IzabelaMessagePayload) => {
         ...rest,
         id,
         timestamp: new Date().toISOString(),
+        cancelled
       }
     },
   }

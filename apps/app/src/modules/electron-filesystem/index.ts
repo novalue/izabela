@@ -44,7 +44,7 @@ export const ElectronFilesystem = () => ({
   ): Promise<string> {
     const settingsStore = useSettingsStore()
     await settingsStore.$whenReady()
-    const extension = content.split(';')[0].split('/')[1]
+    const extension = "mp3"
     const directory =
       settingsStore.preferredSavDir && (await stat(settingsStore.preferredSavDir))
         ? settingsStore.preferredSavDir
@@ -67,7 +67,14 @@ export const ElectronFilesystem = () => ({
       options,
     )
     if (!res.filePath) return Promise.reject(Error('No file selected'))
-    await writeFile(res.filePath, content.split(',').pop() as string, 'base64')
+
+    let messageData = { audio: "" };
+    try 
+    {
+      let bufferData = Buffer.from(content.split(',').pop() as string, 'base64').toString('utf-8');
+      messageData = JSON.parse(bufferData);
+    } catch (_) {}
+    await writeFile(res.filePath, messageData.audio, 'base64')
     settingsStore.preferredSavDir = path.dirname(res.filePath)
     return Promise.resolve(res.filePath)
   },
