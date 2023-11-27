@@ -1,12 +1,16 @@
-import { app, BrowserWindow, screen, Menu, MenuItem } from 'electron'
+import { app, BrowserWindow, screen, Menu, MenuItem, nativeTheme } from 'electron'
 import path from 'path'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import { ipcMain } from 'electron-postman'
-import { onIPCVoiceSpellcheckLocale } from '@/electron/events/main'
+import { onIPCVoiceSpellcheckLocale, onIPCToggleDarkMode } from '@/electron/events/main'
 import electronMessengerWindow from '@/teams/messenger/modules/electron-messenger-window'
+import { useSettingsStore } from '@/features/settings/store'
 
 let window: BrowserWindow
 const createWindow = async (name: string): Promise<BrowserWindow> => {
+  const settingsStore = useSettingsStore()
+  await settingsStore.$whenReady()
+  
   window = new BrowserWindow({
     show: false,
     fullscreen: true,
@@ -38,16 +42,31 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
   })
 
   ipcMain.registerBrowserWindow(name, window)
+
+  window.webContents.session.setSpellCheckerLanguages([settingsStore.voiceLocale])
+
   onIPCVoiceSpellcheckLocale((process: string, locale: string) => {
     if (name == process)
     {
       window.webContents.session.setSpellCheckerEnabled(false)
       window.webContents.session.setSpellCheckerLanguages([locale])
       window.webContents.session.setSpellCheckerEnabled(true)
+
+      settingsStore.$patch({voiceLocale: locale})
     }
   })
 
-  window.webContents.session.setSpellCheckerLanguages(['en-US'])
+  nativeTheme.themeSource = (settingsStore.toggleDarkMode ? 'dark' : 'light')
+
+  onIPCToggleDarkMode(() => {
+    if (nativeTheme.shouldUseDarkColors) {
+      nativeTheme.themeSource = 'light'
+    } else {
+      nativeTheme.themeSource = 'dark'
+    }
+    settingsStore.$patch({toggleDarkMode: nativeTheme.shouldUseDarkColors})
+  })
+
   window.webContents.on('context-menu', (event, params) => {
     const menu = new Menu()
 

@@ -371,4 +371,27 @@ watch(carretIndex, () => {
     overflow: hidden;
   }
 }
+
+@media (prefers-color-scheme: dark) {
+  .messenger {
+    background-color: #0000006f; 
+    border-width: 1px; 
+    border-color: #ffffff4f;
+
+    div div {
+      background-color: transparent; 
+    }
+  }
+
+  .overlayInput {
+    background-color: #111 !important;
+    border-color: #ffffff1f; 
+    box-shadow: 0 0 0 0.1rem #8080809f; 
+    color: #fff;
+    text-transform: initial;
+    width: 100%;
+    align-items: center;
+    white-space: nowrap;
+  }
+}
 </style>

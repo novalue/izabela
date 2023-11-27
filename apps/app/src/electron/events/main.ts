@@ -32,3 +32,11 @@ export const onIPCVoiceSpellcheckLocale = (callback: (process: string, locale: s
     )
   })
 }
+
+export const onIPCToggleDarkMode = (callback: () => void) => {
+  rendererProcesses.forEach((process) => {
+    ipcMain.on(process, 'toggle-dark-mode', () =>
+      callback()
+    )
+  })
+}

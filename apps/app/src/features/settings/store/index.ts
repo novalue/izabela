@@ -20,8 +20,10 @@ export const useSettingsStore = defineStore(
       ? 'rc'
       : 'latest'
 
+    const toggleDarkMode = ref(false)
     const preferredSavDir = ref<null | string>(null)
     const playSpeechOnDefaultPlaybackDevice = ref(true)
+    const voiceLocale = ref<string>('en-US')
     const audioOutputs = ref<MediaDeviceInfo['label'][]>([])
     const audioInput = ref<MediaDeviceInfo['label']>('default')
     const selectedSpeechEngine = ref<SpeechEngine['id']>(ENGINE_ID)
@@ -200,9 +202,11 @@ export const useSettingsStore = defineStore(
     })
     return {
       // enableBackgroundDim,
+      toggleDarkMode,
       backgroundDimOpacity,
       preferredSavDir,
       playSpeechOnDefaultPlaybackDevice,
+      voiceLocale,
       audioOutputs,
       audioInput,
       selectedSpeechEngine,

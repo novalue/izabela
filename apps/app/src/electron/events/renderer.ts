@@ -27,6 +27,12 @@ export const emitIPCVoiceSpellcheckLocale = (locale: string) => {
   })
 }
 
+export const emitIPCToggleDarkMode = () => {
+  processes.forEach((process) => {
+    ipc.sendTo(process, 'toggle-dark-mode')
+  })
+}
+
 export const onIPCCancelCurrentMessage = (callback: () => any) => {
   processes.forEach((process) => {
     ipc.on(process, 'cancel-current-message', callback)

@@ -8,6 +8,12 @@
         </template>
       </NvTooltip>
       <NvTooltip>
+        <NvText>Dark mode</NvText>
+        <template #reference>
+          <NvButton icon-name="nv-moon-eclipse" size="sm" @click="toggleDarkMode" />
+        </template>
+      </NvTooltip>
+      <NvTooltip>
         <NvText>Messages</NvText>
         <template #reference>
           <NvButton
@@ -107,6 +113,7 @@ import { NvButton, NvCard, NvGroup, NvText, NvTooltip } from '@packages/ui'
 import { inject, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSettingsStore } from '@/features/settings/store'
+import { emitIPCToggleDarkMode } from '@/electron/events/renderer'
 
 const settingsStore = useSettingsStore()
 const messengerContext = inject('messenger')
@@ -122,6 +129,10 @@ const startTour = () => {
   step.value = 0
   tour.value.resetTour()
   tour.value.startTour()
+}
+const toggleDarkMode = () =>
+{
+  emitIPCToggleDarkMode()
 }
 const steps = [
   {

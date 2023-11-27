@@ -32,4 +32,49 @@ injectGlobal`
     outline: ${rem(2)} solid ${colors.black} !important;
     border-radius: inherit !important;
   }
+
+  @media (prefers-color-scheme: dark) {
+    .messenger { background-color: #000000cf; color: white; border-width: 1px; border-color: #ffffff9f }
+    .messenger div div { background-color: #00000000; }
+    .messenger div div span a button { background-color: #111; border-width: 0px }
+    .messenger div div div button { background-color: #111; border-width: 0px }
+    .messenger div div div button:active { background-color: #111 }
+    .messenger div div div button:hover { background-color: #000000df; border-width: 0px }
+    .messenger div div div button:focus { box-shadow: none }
+    .messenger div div div div span div span div { background-color: #111; border-width: 0px; box-shadow: none  }
+    .messenger div div div div span div span div:hover { background-color: #000000df }
+    .messenger div div div div span div span div div div div input { background-color: #111; border-width: 0px; box-shadow: none }
+    .messenger div div div div span div span div div div div input:hover { background-color: #000000df }
+    .messenger div div div div span button { background-color: #111; border-width: 0px }
+    .messenger div div div div span button:active { background-color: #111 }
+    .messenger div div div div span button:hover { background-color: #000000df }
+    .messenger div div div div span button:focus { box-shadow: none }
+    .messenger div div div div span a button { background-color: #111; border-width: 0px }
+    .messenger div div div div span a button:active { background-color: #111 }
+    .messenger div div div div span a button:hover { background-color: #000000df }
+    .messenger div div div div span a button:focus { box-shadow: none  }
+
+    input[data-v-step="messenger-text-input"] { background-color: #111; border-color: #ffffff1f !important; color: #888 !important }
+    input[data-v-step="messenger-text-input"]:focus { box-shadow: 0 0 0 0.1rem #8080809f !important; color: #fff !important }
+
+    div[data-v-step="messenger-text-input"] .autocomplete { border-color: #111 !important }
+    div[data-v-step="messenger-text-input"] .autocomplete .autocomplete__list { background-color: #101010df; color: #777 !important }
+    div[data-v-step="messenger-text-input"] .autocomplete .autocomplete__list div div:hover { background-color: #303030df !important}
+    div[data-v-step="messenger-text-input"] .autocomplete .autocomplete__list div div div { background-color: #000000af !important}
+    div[data-v-step="messenger-text-input"] .autocomplete .autocomplete__list div div div:hover { background-color: #101010ad !important}
+    div[data-v-step="messenger-text-input"] .autocomplete .autocomplete__list div div div div { background-color: transparent !important}
+    div[data-v-step="messenger-text-input"] .autocomplete .autocomplete__list div div div div:hover { background-color: transparent !important}
+
+    div[data-v-step="engine-select"] .autocomplete .autocomplete__list { background-color: #101010df }
+    div[data-v-step="engine-select"] .autocomplete .autocomplete__list div div { background-color: #101010df !important}
+    div[data-v-step="engine-select"] .autocomplete .autocomplete__list div div:hover { background-color: #303030ad !important}
+    div[data-v-step="engine-select"] .autocomplete .autocomplete__list div div div div { background-color: transparent !important}
+    div[data-v-step="engine-select"] .autocomplete .autocomplete__list div div div div:hover { background-color: transparent !important}
+
+    div[data-v-step="engine-voice-select"] .autocomplete .autocomplete__list { background-color: #101010df }
+    div[data-v-step="engine-voice-select"] .autocomplete .autocomplete__list div div { background-color: #101010df !important}
+    div[data-v-step="engine-voice-select"] .autocomplete .autocomplete__list div div:hover { background-color: #303030ad !important}
+    div[data-v-step="engine-voice-select"] .autocomplete .autocomplete__list div div div div { background-color: transparent !important}
+    div[data-v-step="engine-voice-select"] .autocomplete .autocomplete__list div div div div:hover { background-color: transparent !important}
+  }
 `
