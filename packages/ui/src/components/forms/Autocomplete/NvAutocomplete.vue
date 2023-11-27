@@ -29,18 +29,28 @@
                     props.valueKey,
                     props.options[index],
                   ),
-              }"
+                }"
                 @visible="onVisible"
-                @wheel="selection = null"
             >
               <template #default="scope">
-                <slot
-                    v-bind="{
-                    ...scope,
-                    active: selection === scope.index,
-                    item: props.options[scope.index],
-                  }"
-                />
+                <div v-if="selection === scope.index" class="selected">
+                  <slot
+                      v-bind="{
+                      ...scope,
+                      active: selection === scope.index,
+                      item: props.options[scope.index],
+                    }"
+                  />
+                </div>
+                <div v-else class="deselected">
+                  <slot
+                      v-bind="{
+                      ...scope,
+                      active: selection === scope.index,
+                      item: props.options[scope.index],
+                    }"
+                  />
+                </div>
               </template>
             </NvVirtualList>
           </NvVirtualListContainer>
