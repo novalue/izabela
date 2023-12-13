@@ -14,13 +14,11 @@ export default () => {
   }
 
   function onMessageEnd() {
-    currentlyPlayingMessage = null
     playNextMessage()
   }
 
   function endCurrentMessage() {
     currentlyPlayingMessage?.cancel()
-    currentlyPlayingMessage = null
   }
 
   function endAllMessages() {
@@ -55,6 +53,7 @@ export default () => {
   }
 
   function playNextMessage() {
+    currentlyPlayingMessage = null;
     if (messageQueue.length > 0) {
       playMessage(messageQueue[0])
       messageQueue.splice(0, 1)
