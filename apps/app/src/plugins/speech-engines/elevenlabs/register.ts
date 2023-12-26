@@ -25,9 +25,12 @@ registerEngine({
     return {
       text: translatedText || text,
       voice,
+      dictionaryRules,
       stability: getProperty('stability'),
       similarity_boost: getProperty('similarity_boost'),
-      dictionaryRules
+      style: getProperty('style'),
+      use_speaker_boost: getProperty('use_speaker_boost'),
+      model_id: getProperty('model_id'),
     }
   },
   getLanguageCode() {
