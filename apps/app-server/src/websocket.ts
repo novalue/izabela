@@ -37,6 +37,15 @@ export default (() => {
         socket.on('say', (message) => {
           forwardEventToAllSockets('say', message, [socket.id])
         })
+        socket.on('add-dictionary-rule', (message) => {
+          forwardEventToAllSockets('add-dictionary-rule', message, [socket.id])
+        })
+        socket.on('update-dictionary-rule', (message) => {
+          forwardEventToAllSockets('update-dictionary-rule', message, [socket.id])
+        })
+        socket.on('remove-dictionary-rule', (message) => {
+          forwardEventToAllSockets('remove-dictionary-rule', message, [socket.id])
+        })
         ;[
           'message:load',
           'message:start',

@@ -15,11 +15,17 @@ import {
   removeCommandFromMessage,
 } from '@/modules/izabela/utils'
 import { useSettingsStore } from '@/features/settings/store'
+import { useDictionaryStore } from '@/features/dictionary/store'
 import { io } from 'socket.io-client'
+
 
 const { ElectronTranslation } = window
 const speechStore = useSpeechStore()
 const settingsStore = useSettingsStore()
+const dictionaryStore = useDictionaryStore()
+
+const { addDefinition, removeDefinition, updateDefinition, findDefinition } = dictionaryStore
+
 const socket = io(`ws://localhost:${process.env.VUE_APP_SERVER_WS_PORT}`, {})
 const onMessage = async (payload: string | IzabelaMessage) => {
   console.log('Saying something:', payload)
@@ -77,9 +83,48 @@ const onMessage = async (payload: string | IzabelaMessage) => {
   }
   if (message) izabela.say(message)
 }
+const onAddDictionaryRule = async(jsonObj: any) => {
+  if (typeof jsonObj.word === 'string' && typeof jsonObj.definition === 'string' && typeof jsonObj.hacked === 'boolean')
+  {
+    addDefinition([jsonObj.word, jsonObj.definition, jsonObj.hacked])
+  }
+}
+
+const onUpdateDictionaryRule = async(jsonObj: any) => {
+  if (typeof jsonObj.word === 'string' && typeof jsonObj.definition === 'string' && typeof jsonObj.hacked === 'boolean')
+  {
+    const index: number = findDefinition(jsonObj.word, jsonObj.hacked)
+    if (index !== -1) {
+      updateDefinition(index, [jsonObj.word, jsonObj.definition, jsonObj.hacked])
+    }
+  }
+}
+
+const onRemoveDictionaryRule = async(jsonObj: any) => {
+  if (typeof jsonObj.word === 'string' && typeof jsonObj.hacked === 'boolean')
+  {
+    const index: number = findDefinition(jsonObj.word, jsonObj.hacked)
+    if (index !== -1) {
+      removeDefinition(index)
+    }
+  }
+}
+
 socket.on('say', (e) => {
   if (typeof e === 'string') onMessage(e)
 })
+socket.on('add-dictionary-rule', (e) => {
+  if (typeof e === 'object') onAddDictionaryRule(e)
+})
+
+socket.on('update-dictionary-rule', (e) => {
+  if (typeof e === 'object') onUpdateDictionaryRule(e)
+})
+
+socket.on('remove-dictionary-rule', (e) => {
+  if (typeof e === 'object') onRemoveDictionaryRule(e)
+})
+
 onIPCSay(onMessage)
 onIPCCancelCurrentMessage(() => {
   izabela.endCurrentMessage()

@@ -34,7 +34,7 @@ injectGlobal`
   }
 
   @media (prefers-color-scheme: dark) {
-    .messenger { background-color: #000000cf; color: #999; border-width: 1px; border-color: #ffffff9f }
+    .messenger { background-color: #000000cf; color: #ccc; border-width: 1px; border-color: #ffffff9f }
     .messenger div div { background-color: #00000000; }
     .messenger div div span a button { background-color: #111; border-width: 0px; color: #fff }
     .messenger div div div button { background-color: #111; border-width: 0px }
@@ -60,8 +60,8 @@ injectGlobal`
     div[data-v-step="messenger-text-input"] .autocomplete { border-color: #111 !important }
 
     .autocomplete .autocomplete__list { background-color: #101010df }
-    .autocomplete .autocomplete__list .selected div { background-color: #555 !important}
-    .autocomplete .autocomplete__list .deselected div { background-color: transparent !important}
+    .autocomplete .autocomplete__list .selected div { background-color: #555 !important; color: #fff}
+    .autocomplete .autocomplete__list .deselected div { background-color: transparent !important; color: #ccc}
     .autocomplete .autocomplete__list .deselected div:hover { background-color: #444 !important}
   }
 `
