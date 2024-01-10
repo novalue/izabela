@@ -147,8 +147,17 @@ export const useDictionaryStore = defineStore(
       removeDefinition: (index: number) => {
         definitions.value.splice(index, 1)
       },
-      findDefinition: (word: string, hacked: boolean) =>
-        definitions.value.findIndex((definition) => definition[0].trim().toLowerCase() === word.trim().toLowerCase() && definition[2] === hacked),
+      findDefinition: (word: string, hacked: boolean) => {
+        for(let i = definitions.value.length - 1; i >= 0; i -= 1)
+        {
+          const definition = definitions.value[i];
+          if (definition[0].trim().toLowerCase() === word.trim().toLowerCase() && (definition[2] === hacked || definition[2] === undefined))
+          {
+            return i;
+          }
+        }
+        return -1;
+      }
     }
   },
   {
