@@ -82,14 +82,14 @@ export const StButton = styled('button', props)`
 
   ${({ align = '' }) => align && `justify-content: ${align};`}
   ${(props) => styleBySize(props)}
-  ${({ squared }) =>
+    ${({ squared }) =>
     squared &&
     `
         padding: 0;
         justify-content: center;
     `}
-  ${(props) => styleBySquared(props)}
-  ${({ type, selected }) =>
+    ${(props) => styleBySquared(props)}
+    ${({ type, selected }) =>
     [
       type === 'default' &&
         `
@@ -118,6 +118,7 @@ export const StButton = styled('button', props)`
         `
             background-color: ${colors.white};
             border-color: ${colors.gray['100']};
+            border-width: ${rem(2)};
             &:hover {
                 background-color: ${colors.gray['10']};
             }
@@ -212,7 +213,7 @@ export const StButton = styled('button', props)`
             ].filter(Boolean)}
         `,
     ].filter(Boolean)}
-  .nv-button__icon {
+    .nv-button__icon {
     pointer-events: none;
     ${({ squared }) => !squared && 'position: absolute;'}
     ${({ size, squared }) => !squared && iconStyleBySize(size)}

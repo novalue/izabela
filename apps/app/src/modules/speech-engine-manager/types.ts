@@ -10,6 +10,7 @@ export type DictionaryRule = { [key: string]: any }
 export interface SpeechEngine {
   id: string
   name: string
+  category: 'cloud' | 'local' | 'other'
   getVoiceName: (voice: any) => string
   getSelectedVoice: () => any
   getCredentials: () => Credentials
