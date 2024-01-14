@@ -135,9 +135,12 @@ export default (messagePayload: IzabelaMessagePayload) => {
       })
       .then((res) => {
         audioDownloaded.resolve(true)
-        const blob = 'data' in res ? res.data : res
-        cacheAudio(blob)
-        return Promise.resolve(blob)
+
+        if (res.status === 200) {
+          cacheAudio(res.data)
+        }
+
+        return Promise.resolve(res.data)
       })
   }
 

@@ -1,5 +1,6 @@
 import { DEFAULT_LANGUAGE_CODE } from '@/consts'
 import { registerEngine } from '@/modules/speech-engine-manager'
+import { AxiosResponse } from 'axios'
 import SamJs from 'sam-js'
 import NvVoiceSelect from './NvVoiceSelect.vue'
 import NvSettings from './NvSettings.vue'
@@ -119,7 +120,16 @@ registerEngine({
     const blob = new Blob([realBuffer], {
       type: 'audio/vnd.wave',
     })
-    return Promise.resolve(blob)
+
+    const response : AxiosResponse<Blob, any> = {
+      data: blob,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {}
+    }
+
+    return Promise.resolve(response)
   },
   voiceSelectComponent: NvVoiceSelect,
   settingsComponent: NvSettings,

@@ -41,15 +41,13 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
       fs.mkdirSync(path.parse(outputFile).dir, { recursive: true })
       fs.writeFileSync(outputFile, '')
 
-      const speechSynthesizerContent: SpeechSynthesizerAnswer = await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
-        const answer: SpeechSynthesizerAnswer = {
-          caption: [],
-          audio: ''
-        }
+      await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
+        const answer: SpeechSynthesizerAnswer = { caption: [], audio: '', note: '' }
 
-        say.export(text, voice, speed, outputFile, (err) => {
-          if (err) {
-            reject(err)
+        say.export(text, voice, speed, outputFile, (error) => {
+          if (error) {
+            answer.note = error
+            reject(answer)
           } else {
             let textOffset = 0
             let textMoment = 0
@@ -80,15 +78,11 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
             resolve(answer)
           }
         })
-      }).catch((err) => {
-        console.log(err)
-        const answer : SpeechSynthesizerAnswer = {caption: [], audio: ''}
-        answer.audio = fs.readFileSync(outputFile).toString('base64')
-        fs.unlinkSync(outputFile)
-        return answer
+      }).then((response) => {
+        res.status(200).json(response)
+      }).catch((error) => {
+        res.status(503).json(error)
       })
-
-      res.status(200).json(speechSynthesizerContent)
     } catch (e: any) {
       if (fs.existsSync(outputFile)) {
         fs.unlinkSync(outputFile)

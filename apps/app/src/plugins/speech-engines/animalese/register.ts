@@ -1,5 +1,6 @@
 import { DEFAULT_LANGUAGE_CODE } from '@/consts'
 import { registerEngine } from '@/modules/speech-engine-manager'
+import { AxiosResponse } from 'axios'
 import animalese from '@packages/animalese'
 import NvVoiceSelect from './NvVoiceSelect.vue'
 import NvSettings from './NvSettings.vue'
@@ -57,7 +58,16 @@ registerEngine({
   synthesizeSpeech({ payload }) {
     const audio = animalese.getAudio(payload.text, payload.voice.shortened, payload.voice.pitch)
     const blob = dataURItoBlob(audio.dataURI)
-    return Promise.resolve(blob)
+    
+    const response : AxiosResponse<Blob, any> = {
+      data: blob,
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {}
+    }
+
+    return Promise.resolve(response)
   },
   voiceSelectComponent: NvVoiceSelect,
   settingsComponent: NvSettings,

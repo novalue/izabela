@@ -18,7 +18,7 @@ export interface SpeechEngine {
   synthesizeSpeech: (context: {
     credentials: Credentials
     payload: Payload
-  }) => Promise<AxiosResponse<Blob>> | Promise<Blob>
+  }) => Promise<AxiosResponse<Blob>>
   hasCredentials?: () => boolean
   voiceSelectComponent: Component
   settingsComponent: Component

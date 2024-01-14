@@ -2,12 +2,8 @@ import { RequestHandler } from 'express'
 import axios from 'axios'
 import { handleError } from '@/utils/requests'
 import { WordBoundary, SpeechSynthesizerAnswer } from '@/utils/speech-apis/types'
-import path from 'path'
-import izabelaServer from '@/server'
-import { v4 as uuid } from 'uuid'
-import fs from 'fs'
+
 import {
-  AudioConfig,
   PropertyId,
   SpeechConfig,
   SpeechSynthesisOutputFormat,
@@ -47,28 +43,17 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
     },
     res,
   ) => {
-    const outputFile = path.join(
-      izabelaServer.getConfig().tempPath,
-      uuid() + '.mp3',
-    )
     try {
-      fs.mkdirSync(path.parse(outputFile).dir, { recursive: true })
-      fs.writeFileSync(outputFile, '')
-
       const speechConfig = SpeechConfig.fromSubscription(apiKey, region)
       speechConfig.speechSynthesisLanguage = payload.voice.Locale
       speechConfig.speechSynthesisVoiceName = payload.voice.ShortName
       speechConfig.speechSynthesisOutputFormat = SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
       speechConfig.setProperty(PropertyId.SpeechServiceResponse_RequestWordBoundary, "true")
 	  
-      const audioConfig = AudioConfig.fromAudioFileOutput(outputFile)
-      const synthesizer = new SpeechSynthesizer(speechConfig, audioConfig)
+      const synthesizer = new SpeechSynthesizer(speechConfig)
 
-      const speechSynthesizerContent: SpeechSynthesizerAnswer = await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
-        const answer: SpeechSynthesizerAnswer = {
-          caption: [],
-          audio: ''
-        }
+      await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
+        const answer: SpeechSynthesizerAnswer = { caption: [], audio: '', note: '' }
 
         synthesizer.wordBoundary = function(_, event) {
           const wordBoundary: WordBoundary = {
@@ -86,17 +71,13 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
           synthesizer.speakSsmlAsync(
             payload.ssml,
             (result) => {
-              try {
-                fs.writeFileSync(outputFile, Buffer.from(result.audioData))
-                answer.audio = fs.readFileSync(outputFile).toString('base64')
-                fs.unlinkSync(outputFile)
-              } catch(_) {}
-
+              answer.audio = Buffer.from(result.audioData).toString('base64')
               resolve(answer)
               synthesizer.close()
             },
             (error) => {
-              reject(error)
+              answer.note = error
+              reject(answer)
               synthesizer.close()
             },
           )
@@ -104,43 +85,28 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
           synthesizer.speakTextAsync(
             payload.text,
             (result) => {
-              try {
-                fs.writeFileSync(outputFile, Buffer.from(result.audioData))
-                answer.audio = fs.readFileSync(outputFile).toString('base64')
-                fs.unlinkSync(outputFile)
-              } catch(_) {}
-
+              answer.audio = Buffer.from(result.audioData).toString('base64')
               resolve(answer)
               synthesizer.close()
             },
             (error) => {
-              reject(error)
+              answer.note = error
+              reject(answer)
               synthesizer.close()
             },
           )
         }
-      }).catch(() => {
-        const answer : SpeechSynthesizerAnswer = {caption: [], audio: ''}
-        try {
-          answer.audio = fs.readFileSync(outputFile).toString('base64')
-          fs.unlinkSync(outputFile)
-        } catch(_) {}
-        return answer
+      }).then((response) => {
+          res.status(200).json(response)
+      }).catch((error) => {
+        res.status(503).json(error)
       })
-
-      res.status(200).json(speechSynthesizerContent)
     } catch (e: any) {
-      if (fs.existsSync(outputFile)) {
-        fs.unlinkSync(outputFile)
-      }
       handleError(res, 'Internal server error', e.message, 500)
     }
   }
   app.post('/api/tts/microsoft-azure/list-voices', listVoicesHandler)
-  app.post(
-    '/api/tts/microsoft-azure/synthesize-speech',
-    synthesizeSpeechHandler,
-  )
+  app.post('/api/tts/microsoft-azure/synthesize-speech', synthesizeSpeechHandler)
 }
 
 export default plugin

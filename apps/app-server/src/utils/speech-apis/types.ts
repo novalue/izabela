@@ -10,6 +10,7 @@ export type WordBoundary = {
 export type SpeechSynthesizerAnswer = {
     caption: WordBoundary[]
     audio: string
+    note: string
 }
 
 export const getWordBoundaryType = (word: string) =>  {
