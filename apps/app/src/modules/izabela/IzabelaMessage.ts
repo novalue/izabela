@@ -2,7 +2,8 @@ import { v4 as uuid } from 'uuid'
 import { Buffer } from 'buffer'
 import mitt from 'mitt'
 import { Promise } from 'bluebird'
-import { getEngineById } from '@/modules/speech-engine-manager'
+import { AxiosError } from 'axios'
+import instance, { getEngineById } from '@/modules/speech-engine-manager'
 import { getMediaDeviceByLabel } from '@/utils/media-devices'
 import { useSettingsStore } from '@/features/settings/store'
 import { blobToBase64, Deferred } from '@packages/toolbox'
@@ -132,15 +133,26 @@ export default (messagePayload: IzabelaMessagePayload) => {
       .synthesizeSpeech({
         credentials,
         payload,
-      })
-      .then((res) => {
+      }).then((result) => {
         audioDownloaded.resolve(true)
 
-        if (res.status === 200) {
-          cacheAudio(res.data)
+        if (result.status === 200) {
+          cacheAudio(result.data)
         }
 
-        return Promise.resolve(res.data)
+        return Promise.resolve(result.data)
+      }).catch(async (error) => {
+        if (error instanceof AxiosError && error.response && error.response.data instanceof Blob) {
+          const blobData: Uint8Array = new Uint8Array(await error.response.data.arrayBuffer())
+          const blobDecode = new TextDecoder().decode(blobData)
+          try {
+            const synthesizerData = JSON.parse(blobDecode)
+            return Promise.reject(new Error(synthesizerData.note))
+          } catch {
+            return Promise.reject(new Error(blobDecode))
+          }
+        }
+        return Promise.reject(new Error(JSON.stringify(error)))
       })
   }
 
@@ -236,7 +248,8 @@ export default (messagePayload: IzabelaMessagePayload) => {
         if (!engine) throw new Error('Izabela Message: Selected engine was not found')
 
         if (engineName === 'izabelatts' || engineName === 'samtts' || engineName === 'iwtts' || engineName === 'aptts' || engineName === 'uberduck' ||
-            engineName === 'gctts' || engineName === '11labstts' || engineName === 'customtts' || engineName === 'animalesetts' || !engine.store.getProperty('useLocalCredentials')) {
+            engineName === 'gctts' || engineName === '11labstts' || engineName === 'customtts' || engineName === 'animalesetts' || 
+            (!engine.store.getProperty('useLocalCredentials') && engineName === 'matts')) {
           loadCaption([])
           loadAudioFromBlob(blob)
         } else {
@@ -247,7 +260,10 @@ export default (messagePayload: IzabelaMessagePayload) => {
           loadAudioFromBase64(synthesizerData.audio)
         }
       })
-      .catch((reason) => onError(reason))
+      .catch((reason) => {
+        console.error(reason)
+        onError(reason)
+      })
   }
 
   return {

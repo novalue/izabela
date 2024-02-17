@@ -64,12 +64,11 @@
         :readonly="item.children"
         :selected="
           selectedValues.find(
-            (v) =>
-              (get(item.value, props.valueKey) || item.value) ===
-              (get(v, props.valueKey) || v),
+            (v) => (get(item.value, props.valueKey) || item.value) === (get(v, props.valueKey) || v),
           )
         "
         :title="item.label"
+        :label="item.children ? 'true':'false'"
         v-bind="item.attrs || {}"
         @mousedown="!item.children && handleValue(item.value)"
       >

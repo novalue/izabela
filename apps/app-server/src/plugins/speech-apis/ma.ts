@@ -54,6 +54,7 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
 
       await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
         const answer: SpeechSynthesizerAnswer = { caption: [], audio: '', note: '' }
+        let retries = 0
 
         synthesizer.wordBoundary = function(_, event) {
           const wordBoundary: WordBoundary = {
@@ -67,40 +68,47 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
           answer.caption.push(wordBoundary)
         }
 
+        synthesizer.synthesisStarted = () => {
+          answer.caption = []
+          answer.audio = ''
+          answer.note = ''
+        }
+
+        synthesizer.synthesisCompleted = (_, event) => {
+          answer.audio = Buffer.from(event.result.audioData).toString('base64')
+          answer.note = 'Times retried: ' + retries
+          resolve(answer)
+        }
+
+        synthesizer.SynthesisCanceled = (_, event) => {
+          answer.note = event.result.errorDetails
+          setTimeout(() => {
+            if (retries < 20)
+            {
+              if (payload.ssml) {
+                synthesizer.speakSsmlAsync(payload.ssml)
+              } else {
+                synthesizer.speakTextAsync(payload.text)
+              }
+              retries += 1
+            } else {
+              reject(answer)
+            }
+          }, 500 + retries * 250)
+        }
+
         if (payload.ssml) {
-          synthesizer.speakSsmlAsync(
-            payload.ssml,
-            (result) => {
-              answer.audio = Buffer.from(result.audioData).toString('base64')
-              resolve(answer)
-              synthesizer.close()
-            },
-            (error) => {
-              answer.note = error
-              reject(answer)
-              synthesizer.close()
-            },
-          )
+          synthesizer.speakSsmlAsync(payload.ssml)
         } else {
-          synthesizer.speakTextAsync(
-            payload.text,
-            (result) => {
-              answer.audio = Buffer.from(result.audioData).toString('base64')
-              resolve(answer)
-              synthesizer.close()
-            },
-            (error) => {
-              answer.note = error
-              reject(answer)
-              synthesizer.close()
-            },
-          )
+          synthesizer.speakTextAsync(payload.text)
         }
       }).then((response) => {
-          res.status(200).json(response)
+        res.status(200).json(response)
       }).catch((error) => {
         res.status(503).json(error)
       })
+      
+      synthesizer.close()
     } catch (e: any) {
       handleError(res, 'Internal server error', e.message, 500)
     }

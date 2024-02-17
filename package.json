@@ -13,7 +13,8 @@
     "postinstall": "yarn patch && electron-rebuild -f -w @packages/win-mouse"
   },
   "dependencies": {
-    "@packages/win-mouse": "^2.0.1"
+    "@packages/win-mouse": "^2.0.1",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "lerna": "^6.1.0",

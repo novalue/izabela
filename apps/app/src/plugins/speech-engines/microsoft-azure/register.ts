@@ -32,9 +32,11 @@ registerEngine({
 
     if (expression)
     {
-      newText = newText.replaceAll('&', '&amp;')
-      newText = newText.replaceAll('<', '&lt;')
-      newText = newText.replaceAll('>', '&gt;')
+      newText = newText.replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&apos;");
     }
     
     const ssml = expression

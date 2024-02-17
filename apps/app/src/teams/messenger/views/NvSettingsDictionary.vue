@@ -59,28 +59,40 @@
                 </div>
                 <NvDivider direction="horizontal" />
                 <NvGroup class="w-full" grow no-wrap>
-                  <NvText class="w-1/4" type="label">Hacked</NvText>
+                  <NvText type="label" class="w-1/6">Hacked</NvText>
+                  <NvDivider class="!grow-0 h-5" direction="vertical" />
+                  <NvText type="label" class="w-1/6">Reveal</NvText>
+                  <NvDivider class="!grow-0 h-5" direction="vertical" />
                   <NvText class="w-1/2" type="label">Word</NvText>
+                  <NvDivider class="!grow-0 h-5" direction="vertical" />
                   <NvText class="w-1/2" type="label">Definition</NvText>
-                  <NvButton class="!grow-0 invisible" icon-name="times" size="xs" type="plain" />
+                  <NvDivider class="!grow-0 h-5" direction="vertical" />
+                  <NvText class="!grow-0 invisible" icon-name="times"></NvText>
                 </NvGroup>
                 <template v-for="(definition, i) in definitions" :key="i">
-                  <NvGroup class="w-full" grow>
-                    <NvGroup justify="apart">
+                  <NvGroup class="w-full" grow no-wrap>
+                    <NvGroup class="w-1/6" style="display: flex; justify-content: center; align-items: center;">
                       <NvSwitch
                         :modelValue="definition[2]"
-                        @update:modelValue="(value) => updateDefinition(i, [definition[0], definition[1], value])"
+                        @update:modelValue="(value) => updateDefinition(i, [definition[0], definition[1], value, definition[3]])"
                       />
                     </NvGroup>
                     <NvDivider class="!grow-0 h-5" direction="vertical" />
-                    <NvInput
+                    <NvGroup class="w-1/6" style="display: flex; justify-content: center; align-items: center;">
+                      <NvSwitch
+                        :modelValue="definition[3]"
+                        @update:modelValue="(value) => updateDefinition(i, [definition[0], definition[1], definition[2], value])"
+                      />
+                    </NvGroup>
+                    <NvDivider class="!grow-0 h-5" direction="vertical" />
+                    <NvInput class="w-1/2"
                       :modelValue="definition[0]"
-                      @update:modelValue="(value) => updateDefinition(i, [value, definition[1], definition[2]])"
+                      @update:modelValue="(value) => updateDefinition(i, [value, definition[1], definition[2], definition[3]])"
                     />
                     <NvDivider class="!grow-0 h-5" direction="vertical" />
-                    <NvInput
+                    <NvInput class="w-1/2"
                       :modelValue="definition[1]"
-                      @update:modelValue="(value) => updateDefinition(i, [definition[0], value, definition[2]])"
+                      @update:modelValue="(value) => updateDefinition(i, [definition[0], value, definition[2], definition[3]])"
                     />
                     <NvButton
                       class="!grow-0"

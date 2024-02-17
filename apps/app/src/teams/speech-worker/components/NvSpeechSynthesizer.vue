@@ -86,7 +86,7 @@ const onMessage = async (payload: string | IzabelaMessage) => {
 const onAddDictionaryRule = async(jsonObj: any) => {
   if (typeof jsonObj.word === 'string' && typeof jsonObj.definition === 'string' && typeof jsonObj.hacked === 'boolean')
   {
-    addDefinition([jsonObj.word, jsonObj.definition, jsonObj.hacked])
+    addDefinition([jsonObj.word, jsonObj.definition, jsonObj.hacked, jsonObj.reveal])
   }
 }
 
@@ -95,7 +95,7 @@ const onUpdateDictionaryRule = async(jsonObj: any) => {
   {
     const index: number = findDefinition(jsonObj.word, jsonObj.hacked)
     if (index !== -1) {
-      updateDefinition(index, [jsonObj.word, jsonObj.definition, jsonObj.hacked])
+      updateDefinition(index, [jsonObj.word, jsonObj.definition, jsonObj.hacked, jsonObj.reveal])
     }
   }
 }

@@ -60,8 +60,11 @@ injectGlobal`
     div[data-v-step="messenger-text-input"] .autocomplete { border-color: #111 !important }
 
     .autocomplete .autocomplete__list { background-color: #101010df }
-    .autocomplete .autocomplete__list .selected div { background-color: #555 !important; color: #fff}
-    .autocomplete .autocomplete__list .deselected div { background-color: transparent !important; color: #ccc}
-    .autocomplete .autocomplete__list .deselected div:hover { background-color: #444 !important}
+    .autocomplete .autocomplete__list .selected div { background-color: #555 !important; color: #fff }
+    .autocomplete .autocomplete__list .deselected div { background-color: transparent !important; color: #ccc }
+    .autocomplete .autocomplete__list .deselected div:hover { background-color: #444 !important }
+    .autocomplete .autocomplete__list .deselected div[label="true"] { color: #fff !important }
+    .autocomplete .autocomplete__list .deselected div[label="true"]:hover { background-color: transparent !important }
+    .autocomplete .autocomplete__list .deselected div[label="true"] div::before { background-color: #444 !important }
   }
 `
