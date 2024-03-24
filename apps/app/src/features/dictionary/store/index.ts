@@ -64,15 +64,13 @@ export const useDictionaryStore = defineStore(
       ['ysk', 'you should know', false, false],
       ['yt', 'YouTube', false, false],
     ])
-    const filteredDefinitions = computed(() =>
-      definitions.value.filter((def) => Array.isArray(def)),
-    )
+    
     const translateText = (text: string) => {
       if (!enableDictionary.value) return text
       const flags = caseSensitive.value ? 'g' : 'gi';
 
       let newText = text
-      filteredDefinitions.value.forEach(([word, definition]) => {
+      definitions.value.slice().reverse().forEach(([word, definition]) => {
         const filterWord = word.replaceAll(/([^\s\w])/g, '\\$1')
         newText = newText.replaceAll(new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags), `$1${definition}`)
       })
@@ -87,7 +85,7 @@ export const useDictionaryStore = defineStore(
       const flags = caseSensitive.value ? 'g' : 'gi';
 
       let input = text;
-      definitions.value.forEach(([word, definition, hacked, reveal]) => {
+      definitions.value.slice().reverse().forEach(([word, definition, hacked, reveal]) => {
         const transform: DictionaryRule = {
           keyword: definition,
           replace: word,
