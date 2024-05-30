@@ -26,7 +26,7 @@ const dictionaryStore = useDictionaryStore()
 
 const { addDefinition, removeDefinition, updateDefinition, findDefinition } = dictionaryStore
 
-const socket = io(`ws://localhost:${process.env.VUE_APP_SERVER_WS_PORT}`, {})
+const socket = io(`ws://localhost:${import.meta.env.VITE_SERVER_WS_PORT}`, {})
 const onMessage = async (payload: string | IzabelaMessage) => {
   console.log('Saying something:', payload)
   let message = null

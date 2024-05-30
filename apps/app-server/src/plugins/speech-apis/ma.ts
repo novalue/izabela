@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express'
 import axios from 'axios'
-import { handleError } from '@/utils/requests'
-import { WordBoundary, SpeechSynthesizerAnswer } from '@/utils/speech-apis/types'
+import { handleError } from '../../utils/requests'
+import { WordBoundary, SpeechSynthesizerAnswer } from '../../utils/speech-apis/types'
 
 import {
   PropertyId,
@@ -10,7 +10,7 @@ import {
   SpeechSynthesizer,
 } from 'microsoft-cognitiveservices-speech-sdk'
 
-const plugin: Izabela.Server.Plugin = ({ app }) => {
+const plugin: Izabela.Server.Plugin = ({ app, config }) => {
   const listVoicesHandler: RequestHandler = async (
     {
       body: {
