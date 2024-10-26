@@ -221,6 +221,8 @@ function parseTransform(transform: string | null) {
 const { width: moveableTargetWidth, height: moveableTargetHeight } =
   useElementSize(moveableTarget)
 
+let convertScreenPositionTimeout = null
+
 function convertScreenPosition() {
   const { width: previousWindowWidth, height: previousWindowHeight } =
     previousWindowSize.value
@@ -245,8 +247,8 @@ function convertScreenPosition() {
     const newYValue =
       currentWindowHeight * previousCenteredYPercentage -
       moveableTargetHeight.value / 2
-
-    setTimeout(() => {
+    if (convertScreenPositionTimeout) clearTimeout(convertScreenPositionTimeout)
+    convertScreenPositionTimeout = setTimeout(() => {
       if (moveable.value) {
         moveable.value.request(
           'draggable',
@@ -262,6 +264,7 @@ function convertScreenPosition() {
         width: currentWindowWidth,
         height: currentWindowHeight,
       }
+      convertScreenPositionTimeout = null
     }, 1000)
   }
 }
