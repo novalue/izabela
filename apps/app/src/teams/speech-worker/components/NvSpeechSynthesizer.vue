@@ -55,10 +55,11 @@ const onMessage = async (payload: string | IzabelaMessage) => {
       engine: engine.id,
       credentials: engine.getCredentials(),
       payload: engine.getPayload({
-        expression: null,
+        text: cleanMessage,
+        intonation: null,
+        hasPhonemes: null,
         voice,
         translatedText: translatedMessage,
-        text: cleanMessage,
         dictionaryRules: []
       }),
       command: getMessageCommand(payload),
@@ -73,10 +74,11 @@ const onMessage = async (payload: string | IzabelaMessage) => {
       ...payload,
       credentials: engine.getCredentials(),
       payload: engine.getPayload({
-        expression: null,
+        text: cleanMessage,
+        intonation: null,
+        hasPhonemes: null,
         voice,
         translatedText: payload.translatedMessage,
-        text: cleanMessage,
         dictionaryRules: []
       }),
     }

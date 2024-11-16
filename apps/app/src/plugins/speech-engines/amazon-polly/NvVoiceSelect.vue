@@ -4,10 +4,14 @@
     :options="options"
     v-bind="{
       modelValue: getProperty('selectedVoice'),
-      'onUpdate:modelValue': (value) =>
-        setProperty('selectedVoice', purify(value)),
       ...$attrs,
     }"
+    @update:modelValue="
+      (value) => {
+        emitIPCVoiceSpellcheckLocale(value.LanguageCode);
+        setProperty('selectedVoice', purify(value));
+      }
+    "
     valueKey="Id"
   >
     <template #optionAfter="{ option, hover }">
@@ -36,6 +40,7 @@
 <script lang="ts" setup>
 import { computed, watch } from 'vue'
 import { useQueryClient } from 'vue-query'
+import { emitIPCVoiceSpellcheckLocale } from '@/electron/events/renderer'
 import { purify } from '@packages/toolbox'
 import orderBy from 'lodash/orderBy'
 import xor from 'lodash/xor'

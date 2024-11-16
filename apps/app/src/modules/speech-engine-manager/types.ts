@@ -15,7 +15,7 @@ export interface SpeechEngine {
   getSelectedVoice: () => any
   getCredentials: () => Credentials
   getLanguageCode: (voice?: any) => string
-  getPayload: (options: { text: string; expression: string | null; voice: any; translatedText: string | null, dictionaryRules: Array<DictionaryRule> }) => Payload
+  getPayload: (options: { text: string; intonation: string | null; hasPhonemes: boolean | null; voice: any; translatedText: string | null, dictionaryRules: Array<DictionaryRule> }) => Payload
   synthesizeSpeech: (context: {
     credentials: Credentials
     payload: Payload

@@ -8,6 +8,12 @@
         setProperty('selectedVoice', purify(value)),
       ...$attrs,
     }"
+    @update:modelValue="
+      (value) => {
+        emitIPCVoiceSpellcheckLocale(value.language);
+        setProperty('selectedVoice', purify(value));
+      }
+    "
     valueKey="name"
   >
     <template #optionAfter="{ option, hover }">
@@ -36,6 +42,7 @@
 <script lang="ts" setup>
 import { computed, watch } from 'vue'
 import { useQueryClient } from 'vue-query'
+import { emitIPCVoiceSpellcheckLocale } from '@/electron/events/renderer'
 import { NvButton, NvSelect } from '@packages/ui'
 import { purify } from '@packages/toolbox'
 import orderBy from 'lodash/orderBy'

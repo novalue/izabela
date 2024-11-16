@@ -10,34 +10,40 @@ const SpeechEngineManager = () => {
   const commands: SpeechEngine['commands'] = (voice) =>
     (voice.StyleList || []).map((style: string) => ({ name: style, value: style }))
 
+  const checkIntonation = (options: any, speechEngine: SpeechEngine) => {
+    const voice = options.voice || speechEngine.getSelectedVoice()
+    const commandString = options.text.split(' ')[0] || ''
+    if (commandString.startsWith('/')) {
+      const command = commands(voice).find(({ name }) => commandString.startsWith(`/${name}`))
+      options.text = options.text.replace(commandString, '')
+      if (command) {
+        options.intonation = command.value
+      }
+    }
+  }
+
+  const checkPhonemes = (options: any, speechEngine: SpeechEngine) =>
+  {
+    if (speechEngine.id == 'matts') {
+      options.hasPhonemes = false;
+    }
+  }
+
   async function withDictionary(speechEngine: SpeechEngine): Promise<SpeechEngine> {
     const dictionaryStore = useDictionaryStore()
     await dictionaryStore.$whenReady()
     return {
       ...speechEngine,
       getPayload: (options) => {
-        const voice = options.voice || speechEngine.getSelectedVoice()
-        let newText = options.text
-        let intonation = null
+        checkIntonation(options, speechEngine);
+        checkPhonemes(options, speechEngine);
 
-        const commandString = newText.split(' ')[0] || ''
-        if (commandString.startsWith('/')) {
-          const command = commands(voice).find(({ name }) => commandString.startsWith(`/${name}`))
-          newText = newText.replace(commandString, '')
-          newText = newText.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gi, '$2 says:$3')
-          if (command) {
-            intonation = command.value
-          }
-        } else {
-          newText = newText.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gi, '$2 says:$3')
-        }
+        options.text = options.text.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gui, '$2 says:$3')
 
-        return speechEngine.getPayload({
-          ...options,
-          expression: intonation,
-          text: dictionaryStore.translateText(newText),
-          dictionaryRules: dictionaryStore.elaborateRules(newText)
-        })
+        dictionaryStore.translateText(options);
+        dictionaryStore.elaborateRules(options)
+
+        return speechEngine.getPayload(options)
       }
     }
   }

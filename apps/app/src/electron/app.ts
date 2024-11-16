@@ -42,9 +42,7 @@ const App = () => {
       )
 
   const registerElectronPinia = () => {
-    createApp(h({})).use(
-      createPinia().use((electronPiniaPlugin.default || electronPiniaPlugin)()),
-    )
+    createApp(h({})).use(createPinia().use(electronPiniaPlugin()));
   }
 
   const startAppServer = async () =>

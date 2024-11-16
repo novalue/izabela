@@ -20,8 +20,8 @@ const vueQueryPluginOptions: VueQueryPluginOptions = {
 }
 
 const app = createApp(App)
-  .use(router)
   .use(pinia)
+  .use(router)
   .use(VueQueryPlugin, vueQueryPluginOptions)
   .use(NvLoading)
   .use(VueJsTour)

@@ -1,4 +1,4 @@
-import { processes, rendererProcesses } from '@/types/electron'
+import { processes } from '@/types/electron'
 import { IzabelaMessage } from '@/modules/izabela/types'
 
 const { ipc } = window

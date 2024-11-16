@@ -27,26 +27,26 @@ registerEngine({
     const speechStore = useSpeechStore()
     return speechStore.hasUniversalApiCredentials || Object.values(getCredentials()).every(Boolean)
   },
-  getPayload({ text, expression, translatedText, voice, dictionaryRules }) {
-    let newText = text
+  getPayload({ text, intonation, hasPhonemes, translatedText, voice, dictionaryRules }) {
+    let newText = translatedText || text;
 
-    if (expression)
+    if (intonation && !hasPhonemes)
     {
       newText = newText.replace(/&/g, "&amp;")
                         .replace(/</g, "&lt;")
                         .replace(/>/g, "&gt;");
     }
     
-    const ssml = expression
+    const ssml = intonation || hasPhonemes
       ? `<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" version="1.0" xml:lang="en-US"><voice name="${
           voice.ShortName
-        }"><mstts:express-as style="${expression}">${
-          translatedText || newText
-        }</mstts:express-as></voice></speak>`
-      : null
+        }">` + (intonation ? `<mstts:express-as style="${intonation}">${newText}</mstts:express-as>` : `${newText}`) + 
+        `</voice></speak>`
+      : null;
+
     return {
       ssml,
-      text: translatedText || newText,
+      text: newText,
       voice,
       dictionaryRules
     }

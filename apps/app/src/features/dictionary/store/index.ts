@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 import { DictionaryRule } from '@/modules/speech-engine-manager/types'
 
@@ -65,69 +65,102 @@ export const useDictionaryStore = defineStore(
       ['yt', 'YouTube', false, false],
     ])
     
-    const translateText = (text: string) => {
-      if (!enableDictionary.value) return text
+    const translateText = (input: { text: string; intonation: string | null; hasPhonemes: boolean | null; voice: any; translatedText: string | null, dictionaryRules: Array<DictionaryRule> }) => {
+      if (!enableDictionary.value) return
       const flags = caseSensitive.value ? 'g' : 'gi';
 
-      let newText = text
+      let newText = input.text;
       definitions.value.slice().reverse().forEach(([word, definition]) => {
-        const filterWord = word.replaceAll(/([^\s\w])/g, '\\$1')
-        newText = newText.replaceAll(new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags), `$1${definition}`)
-      })
+        const filterWord = word.replace(/([^\s\w])/g, '\\$1')
+        const rex = new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags)
 
-      return newText
-    }
+        if (input.hasPhonemes == null) {
+          newText = newText.replace(rex, `$1${definition}`)
+        } else {
+          let matchPhIpaTag = definition.match(/[<]ipa[=](.+)?[>]/ui);
+          let matchPhSapiTag = definition.match(/[<]sapi[=](.+)?[>]/ui);
+          if (matchPhIpaTag == null && matchPhSapiTag == null) {
+            newText = newText.replace(rex, `$1${definition}`);
+          } else {
+            if (matchPhIpaTag && matchPhIpaTag.length > 1) { 
+              if (rex.test(newText)) {
+                const phoneme = matchPhIpaTag[1];
+                const newDefinition = `<phoneme alphabet='ipa' ph='`+ phoneme +`'>` + word + `</phoneme>`;
+                newText = newText.replace(rex, `$1${newDefinition}`);
+                input.hasPhonemes = true;
+              }
+            }
 
-    const elaborateRules = (text: string) => {
-      const dictionaryRules: Array<DictionaryRule> = []
-      if (!enableDictionary.value) return dictionaryRules
-
-      const flags = caseSensitive.value ? 'g' : 'gi';
-
-      let input = text;
-      definitions.value.slice().reverse().forEach(([word, definition, hacked, reveal]) => {
-        const transform: DictionaryRule = {
-          keyword: definition,
-          replace: word,
-          hacked: hacked ?? false,
-          reveal: reveal ?? false,
-          indices: []
-        }
-
-        let currentIndexOffset = 0;
-        let previousIndexEnd = 0;
-
-        const filterWord = word.replaceAll(/([^\s\w])/gi, '\\$1')
-        const rex = new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, 'gi')
-        while (rex.test(input))
-        {
-          currentIndexOffset += (rex.lastIndex - word.length - previousIndexEnd)
-          transform.indices.push(currentIndexOffset);
-
-          const gap = (definition.length - word.length);
-          for (let t = 0; t < dictionaryRules.length; t += 1)
-          {
-            const rule = dictionaryRules[t];
-            for (let i = 0; i < rule.indices.length; i += 1)
-            {
-              if (rule.indices[i] > currentIndexOffset)
-              {
-                rule.indices[i] += gap;
+            if (matchPhSapiTag && matchPhSapiTag.length > 1) {
+              if (rex.test(newText)) {
+                const phoneme = matchPhSapiTag[1];
+                const newDefinition = `<phoneme alphabet='sapi' ph='`+ phoneme +`'>` + word + `</phoneme>`;
+                newText = newText.replace(rex, `$1${newDefinition}`);
+                input.hasPhonemes = true;
               }
             }
           }
-
-          currentIndexOffset += definition.length;
-          previousIndexEnd = rex.lastIndex;
-        }
-
-        if (transform.indices.length > 0)
-        {
-          input = input.replaceAll(new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags), `$1${definition}`)
-          dictionaryRules.push(transform);
         }
       })
-      return dictionaryRules
+
+      input.translatedText = newText;
+    }
+
+    const elaborateRules = (input: { text: string; intonation: string | null; hasPhonemes: boolean | null; voice: any; translatedText: string | null, dictionaryRules: Array<DictionaryRule> }) => {
+      const dictionaryRules: Array<DictionaryRule> = []
+      input.dictionaryRules = dictionaryRules;
+
+      if (!enableDictionary.value) return
+
+      const flags = caseSensitive.value ? 'g' : 'gi';
+
+      let newText = input.text;
+      definitions.value.slice().reverse().forEach(([word, definition, hacked, reveal]) => {
+        let matchPhIpaTag = definition.match(/[<]ipa[=](.+)?[>]/ui);
+        let matchPhSapiTag = definition.match(/[<]sapi[=](.+)?[>]/ui);
+        if (matchPhIpaTag == null && matchPhSapiTag == null) {
+          const transform: DictionaryRule = {
+            keyword: definition,
+            replace: word,
+            hacked: hacked ?? false,
+            reveal: reveal ?? false,
+            indices: []
+          }
+
+          let currentIndexOffset = 0;
+          let previousIndexEnd = 0;
+  
+          const filterWord = word.replace(/([^\s\w])/gi, '\\$1')
+          const rex = new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, 'gi')
+          while (rex.test(newText))
+          {
+            currentIndexOffset += (rex.lastIndex - word.length - previousIndexEnd)
+            transform.indices.push(currentIndexOffset);
+  
+            const gap = (definition.length - word.length);
+            for (let t = 0; t < dictionaryRules.length; t += 1)
+            {
+              const rule = dictionaryRules[t];
+              for (let i = 0; i < rule.indices.length; i += 1)
+              {
+                if (rule.indices[i] > currentIndexOffset)
+                {
+                  rule.indices[i] += gap;
+                }
+              }
+            }
+  
+            currentIndexOffset += definition.length;
+            previousIndexEnd = rex.lastIndex;
+          }
+  
+          if (transform.indices.length > 0)
+          {
+            newText = newText.replace(new RegExp(`((?<r1>[^\\w]|[_]|(?=^${filterWord}(\\W+|$))))(${filterWord})(?=\\k<r1>(?<![<[({])|\\s|[:,.?!']|(?<=\\<${filterWord})\\>|(?<=\\(${filterWord})\\)|(?<=\\[${filterWord})\\]|(?<=\\{${filterWord})\\}|$)`, flags), `$1${definition}`)
+            dictionaryRules.push(transform);
+          }
+        }
+      })
     }
 
     return {

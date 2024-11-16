@@ -4,12 +4,14 @@
     :options="options"
     v-bind="{
       modelValue: getProperty('selectedVoice'),
-      'onUpdate:modelValue': (value) => {
-        setProperty('selectedVoice', purify(value))
-        emitIPCVoiceSpellcheckLocale(value.Locale)
-      },
       ...$attrs,
     }"
+    @update:modelValue="
+      (value) => {
+        emitIPCVoiceSpellcheckLocale(value.Locale);
+        setProperty('selectedVoice', purify(value));
+      }
+    "
     valueKey="Name"
   >
     <template #optionAfter="{ option, hover }">

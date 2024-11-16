@@ -3,10 +3,13 @@
     :options="options"
     v-bind="{
       modelValue: getProperty('selectedVoice'),
-      'onUpdate:modelValue': (value) =>
-        setProperty('selectedVoice', purify(value)),
       ...$attrs,
     }"
+    @update:modelValue="
+      (value) => {
+        setProperty('selectedVoice', purify(value));
+      }
+    "
     valueKey="name"
   >
     <template #optionAfter="{ option, hover }">

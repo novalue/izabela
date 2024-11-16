@@ -4,9 +4,13 @@
     :options="options"
     v-bind="{
       modelValue: getProperty('selectedVoice'),
-      'onUpdate:modelValue': (value) => setProperty('selectedVoice', value),
       ...$attrs,
     }"
+    @update:modelValue="
+      (value) => {
+        setProperty('selectedVoice', purify(value));
+      }
+    "
   >
     <template #optionAfter="{ option, hover }">
       <span
@@ -34,6 +38,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { NvButton, NvSelect } from '@packages/ui'
+import { purify } from '@packages/toolbox'
 import sortBy from 'lodash/sortBy'
 import xor from 'lodash/xor'
 import { groupOptions } from '@/utils/select'
