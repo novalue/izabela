@@ -39,8 +39,10 @@ registerEngine({
       text: translatedText || text,
       voice,
       audioConfig: {
-        audioEncoding: 'MP3',
-        volumeGainDb: 0,
+        audioEncoding: 'LINEAR16',
+        speakingRate: Number(getProperty('speakingRate')),
+        pitch: Number(getProperty('pitch')),
+        volumeGainDb: Number(getProperty('volumeGainDb')),
       },
       dictionaryRules
     }

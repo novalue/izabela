@@ -20,7 +20,8 @@ registerEngine({
     return {
       text: translatedText || text,
       voice: voice || getSelectedVoice(),
-      dictionaryRules
+      dictionaryRules,
+      speed: getProperty('speed') / 100,
     }
   },
   getLanguageCode() {

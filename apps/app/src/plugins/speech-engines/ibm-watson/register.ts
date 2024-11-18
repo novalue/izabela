@@ -21,13 +21,18 @@ registerEngine({
   getCredentials,
   hasCredentials() {
     const speechStore = useSpeechStore()
-    return speechStore.hasUniversalApiCredentials || Object.values(getCredentials()).every(Boolean)
+    return (
+      speechStore.hasUniversalApiCredentials ||
+      Object.values(getCredentials()).every(Boolean)
+    )
   },
   getPayload({ text, translatedText, voice, dictionaryRules }) {
     return {
       text: translatedText || text,
       voice: (voice || getSelectedVoice()).name,
-      dictionaryRules
+      dictionaryRules,
+      ratePercentage: Number(getProperty('ratePercentage')),
+      pitchPercentage: Number(getProperty('pitchPercentage')),
     }
   },
   getLanguageCode(voice) {
@@ -35,7 +40,9 @@ registerEngine({
   },
   commands: (voice: any) => [],
   synthesizeSpeech({ credentials, payload }) {
-    return api(getProperty('useLocalCredentials') ? 'local' : 'remote').post<Blob>(
+    return api(
+      getProperty('useLocalCredentials') ? 'local' : 'remote',
+    ).post<Blob>(
       '/tts/ibm-watson/synthesize-speech',
       {
         credentials,
