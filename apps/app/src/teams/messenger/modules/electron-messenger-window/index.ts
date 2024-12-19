@@ -237,7 +237,7 @@ export const ElectronMessengerWindow = () => {
   }
   const addEventListeners = () => {
     const window = getWindow()
-    mouse.on('move', throttle(onMouseMove, 150))
+    //mouse.on('move', throttle(onMouseMove, 150))
 
     if (window) {
       window.on('show', () => {
