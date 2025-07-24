@@ -10,7 +10,8 @@
       <NvVoiceSelect />
     </NvFormItem>
   </NvAccessBlocker>
-  <template v-if="speechStore.hasUniversalApiCredentials">
+  <template v-if="(speechStore.hasUniversalApiCredentials && !getProperty('useLocalCredentials')) ||
+                  [getProperty('identityPoolId', true), getProperty('region')].every(Boolean)">
     <NvDivider direction="horizontal" />
     <NvGroup justify="apart" no-wrap spacing="5">
       <NvStack>
