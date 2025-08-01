@@ -1,6 +1,12 @@
 import { SpeechEngine } from '@/modules/speech-engine-manager/types'
+import { SpeechCommand } from '@/features/speech/types.ts'
 
-export type IzabelaMessageEvent = 'started' | 'ended' | 'progress' | 'error'
+export type IzabelaMessageEvent =
+  | 'started'
+  | 'ended'
+  | 'timeupdate'
+  | 'error'
+  | 'response:data'
 
 export type IzabelaWordBoundary = {
   type: string
@@ -19,6 +25,7 @@ export interface IzabelaMessage {
   translatedFrom: string | null
   translatedTo: string | null
   command: string | null
+  customCommand?: SpeechCommand | null
   engine: SpeechEngine['id']
   voice: any
   excludeFromHistory?: boolean
@@ -34,7 +41,8 @@ export interface IzabelaMessagePayload extends IzabelaMessage {
   }
 }
 
-export interface IzabelaHistoryMessage extends Omit<IzabelaMessagePayload, 'credentials'> {
+export interface IzabelaHistoryMessage
+  extends Omit<IzabelaMessagePayload, 'credentials'> {
   id: string
   createdAt: string
 }

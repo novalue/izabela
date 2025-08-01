@@ -1,10 +1,10 @@
-import { api } from '@/services'
+import { fetchApi } from '@/services'
 import { DEFAULT_LANGUAGE_CODE } from '@/consts'
 import { registerEngine } from '@/modules/speech-engine-manager'
 import NvVoiceSelect from './NvVoiceSelect.vue'
 import NvSettings from './NvSettings.vue'
 import { ENGINE_ID, ENGINE_NAME, getVoiceName } from './shared'
-import { getProperty, setProperty } from './store'
+import { getProperty, store } from './store'
 
 const getSelectedVoice = () => getProperty('selectedVoice')
 registerEngine({
@@ -29,16 +29,18 @@ registerEngine({
   },
   commands: (voice: any) => [],
   synthesizeSpeech({ credentials, payload }) {
-    return api('local').post<Blob>(
-      '/tts/say/synthesize-speech',
-      {
+    return fetchApi('local', '/tts/say/synthesize-speech', {
+      method: 'POST',
+      body: JSON.stringify({
         credentials,
-        payload,
-      },
-      { responseType: 'blob' },
-    )
+        payload
+      }),
+    })
+  },
+  getUseCacheOnEveryRequest() {
+    return getProperty('useCacheOnEveryRequest')
   },
   voiceSelectComponent: NvVoiceSelect,
   settingsComponent: NvSettings,
-  store: { setProperty, getProperty },
+  store,
 })

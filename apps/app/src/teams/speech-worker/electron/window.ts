@@ -31,6 +31,8 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
       spellcheck: true
     },
   })
+  ipcMain.registerBrowserWindow(name, window)
+  window.webContents.setMaxListeners(Infinity)
 
   {
     // https://github.com/electron/electron/issues/10078#issuecomment-331581160
@@ -54,6 +56,10 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
       window.webContents.session.setSpellCheckerEnabled(true)
     }
   })
+
+  if (import.meta.env.DEV) {
+    window.webContents.openDevTools({ mode: 'undocked' })
+  }
   
   window.webContents.session.setSpellCheckerLanguages(['en-US'])
   window.webContents.on('context-menu', (event, params) => {
@@ -87,16 +93,13 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
   ipcMain.registerBrowserWindow(name, window)
 
   const filePath = `./src/teams/${name}/index.html`
-
   if (import.meta.env.VITE_DEV_SERVER_URL) {
     await window.loadURL(
       path.join(import.meta.env.VITE_DEV_SERVER_URL as string, filePath),
     )
-    if (import.meta.env.DEV)
-      window.webContents.openDevTools({ mode: 'undocked' })
   } else {
     createProtocol('app')
-    window.loadURL(`app://${filePath}`)
+    await window.loadURL(`app://${filePath}`)
   }
 
   return window

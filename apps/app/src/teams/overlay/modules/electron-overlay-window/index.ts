@@ -9,7 +9,7 @@ import {
   keybindingAllReleased,
   keybindingTriggered,
 } from '@/modules/electron-keybinding/utils'
-import { IGlobalKeyEvent, IGlobalKeyListener } from 'node-global-key-listener'
+import { IGlobalKeyEvent } from 'node-global-key-listener'
 import {
   emitIPCOverlayInputCharacter,
   emitIPCOverlayInputCommand,
@@ -96,7 +96,7 @@ export const ElectronOverlayWindow = () => {
     return Promise.resolve()
   }, 250)
 
-  function toggleOverlayWindowListener(e: Parameters<IGlobalKeyListener>[0]) {
+  function toggleOverlayWindowListener() {
     if (settingsStore) {
       if (keybindingTriggered(settingsStore.keybindings.toggleOverlayWindow)) {
         toggleWindow()
@@ -146,7 +146,7 @@ export const ElectronOverlayWindow = () => {
           e.name !== 'SPACE'
         ) {
           const nativeKey = Object.values(keymap.getKeyMap()).find(
-            (k: any) => k.vkey === e.rawKey._nameRaw,
+            (k: any) => k.vkey === e.rawKey?._nameRaw,
           )
           if (nativeKey) {
             const hasShift = down['LEFT SHIFT'] || down['RIGHT SHIFT']

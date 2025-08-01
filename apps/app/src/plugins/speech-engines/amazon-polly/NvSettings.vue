@@ -1,17 +1,63 @@
 <template>
   <NvAccessBlocker
     :allowed="
-      (speechStore.hasUniversalApiCredentials && !getProperty('useLocalCredentials')) ||
-      [getProperty('identityPoolId', true), getProperty('region')].every(Boolean)
+      (speechStore.hasUniversalApiCredentials && !getStoreProperty('useLocalCredentials')) ||
+      [getStoreProperty('identityPoolId', true), getStoreProperty('region')].every(Boolean)
     "
     reason="Credentials required"
   >
-    <NvFormItem label="Voice">
-      <NvVoiceSelect />
-    </NvFormItem>
+    <NvStack :spacing="5">
+      <NvFormItem label="Voice">
+        <NvVoiceSelect
+          :modelValue="getProperty('selectedVoice')"
+          @update:modelValue="(value) => setProperty('selectedVoice', value)"
+        />
+      </NvFormItem>
+      <template v-if="!form">
+        <NvDivider direction="horizontal" />
+        <NvGroup :spacing="5" align="start" justify="apart" no-wrap>
+          <NvStack>
+            <NvText type="label">Stream audio</NvText>
+            <NvText
+              >Allows for faster audio playback, may cause audio artifacts
+            </NvText>
+          </NvStack>
+          <NvSwitch
+            :modelValue="getProperty('streamAudio')"
+            class="shrink-0"
+            @update:modelValue="(value) => setProperty('streamAudio', value)"
+          />
+        </NvGroup>
+        <NvDivider direction="horizontal" />
+        <NvGroup :spacing="5" justify="apart" no-wrap>
+          <NvStack>
+            <NvText type="label">Prefer cache on every message</NvText>
+          </NvStack>
+          <NvSwitch
+            :modelValue="getProperty('useCacheOnEveryRequest')"
+            @update:modelValue="
+              (value) => setProperty('useCacheOnEveryRequest', value)
+            "
+          />
+        </NvGroup>
+        <NvDivider direction="horizontal" />
+        <NvGroup :spacing="5" justify="apart" no-wrap>
+          <NvStack>
+            <NvText type="label">Provide timestamps to WebSocket events</NvText>
+          </NvStack>
+          <NvSwitch
+            :modelValue="getProperty('includeTimestamps')"
+            class="shrink-0"
+            @update:modelValue="
+              (value) => setProperty('includeTimestamps', value)
+            "
+          />
+        </NvGroup>
+      </template>
+    </NvStack>
   </NvAccessBlocker>
-  <template v-if="(speechStore.hasUniversalApiCredentials && !getProperty('useLocalCredentials')) ||
-                  [getProperty('identityPoolId', true), getProperty('region')].every(Boolean)">
+  <template v-if="(!form && speechStore.hasUniversalApiCredentials && !getStoreProperty('useLocalCredentials')) ||
+                  [getStoreProperty('identityPoolId', true), getStoreProperty('region')].every(Boolean)">
     <NvDivider direction="horizontal" />
     <NvGroup justify="apart" no-wrap spacing="5">
       <NvStack>
@@ -19,11 +65,19 @@
       </NvStack>
       <NvSwitch
         :modelValue="getProperty('useLocalCredentials')"
-        @update:modelValue="(value) => setProperty('useLocalCredentials', value)"
+        @update:modelValue="
+          (value) => setProperty('useLocalCredentials', value)
+        "
       />
     </NvGroup>
   </template>
-  <template v-if="getProperty('useLocalCredentials') || !speechStore.hasUniversalApiCredentials">
+  <template
+    v-if="
+      !form &&
+      (getProperty('useLocalCredentials') ||
+        !speechStore.hasUniversalApiCredentials)
+    "
+  >
     <NvDivider direction="horizontal" />
     <NvStack spacing="5">
       <NvFormItem label="Identity Pool ID">
@@ -31,7 +85,9 @@
           :modelValue="getProperty('identityPoolId', true)"
           show-password
           type="password"
-          @update:modelValue="(value) => setProperty('identityPoolId', value, true)"
+          @update:modelValue="
+            (value) => setProperty('identityPoolId', value, true)
+          "
         />
       </NvFormItem>
     </NvStack>
@@ -59,7 +115,13 @@ import {
 } from '@packages/ui'
 import { useSpeechStore } from '@/features/speech/store'
 import NvVoiceSelect from './NvVoiceSelect'
-import { getProperty, setProperty } from './store'
+import { store } from './store'
 
 const speechStore = useSpeechStore()
+const props = defineProps({
+  form: Object,
+})
+const { getProperty, setProperty, getStoreProperty } = store.useStoreOrForm(
+  props.form,
+)
 </script>

@@ -60,8 +60,22 @@ export default () => {
     }
   }
 
-  function createMessage(messagePayload: IzabelaMessagePayload) {
-    return IzabelaMessage(messagePayload)
+  function createMessage(
+    messagePayload: Partial<IzabelaMessagePayload> &
+      Pick<IzabelaMessagePayload, 'engine'>,
+  ) {
+    return IzabelaMessage({
+      message: '',
+      originalMessage: '',
+      translatedMessage: null,
+      translatedFrom: null,
+      translatedTo: null,
+      payload: {},
+      credentials: {},
+      command: null,
+      voice: null,
+      ...messagePayload,
+    })
   }
 
   function queueMessage(message: ReturnType<typeof IzabelaMessage>) {
@@ -69,7 +83,9 @@ export default () => {
     return message
   }
 
-  function say(messagePayload: IzabelaMessagePayload): ReturnType<typeof IzabelaMessage> {
+  function say(
+    messagePayload: IzabelaMessagePayload,
+  ): ReturnType<typeof IzabelaMessage> {
     const message = createMessage(messagePayload)
     if (currentlyPlayingMessage) {
       return queueMessage(message)

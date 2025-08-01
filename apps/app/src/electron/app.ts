@@ -1,5 +1,6 @@
+import '@/plugins/node'
 import { app, BrowserWindow, protocol } from 'electron'
-import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
+import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 import path from 'path'
 import server from '@apps/app-server'
 import { electronPiniaPlugin } from '@packages/electron-pinia/main'
@@ -7,7 +8,10 @@ import { createApp, h } from 'vue'
 import { createPinia } from 'pinia'
 import createTray from '@/teams/tray/electron-tray'
 import ElectronWindowManager from '@/modules/electron-window-manager'
-import { createMessengerWindow } from '@/teams/messenger/electron/background'
+import {
+  createMessengerGameOverlayWindow,
+  createMessengerWindow,
+} from '@/teams/messenger/electron/background'
 import { createSpeechWorkerWindow } from '@/teams/speech-worker/electron/background'
 import { bridgeModules } from '@/electron/bridge'
 import registerElectronStartup from '@/modules/electron-startup/register'
@@ -18,6 +22,9 @@ import registerElectronKeybinding from '@/modules/electron-keybinding/register'
 import registerElectronCache from '@/modules/electron-cache/register'
 import { destroyWinMouse } from '@/modules/node-mouse'
 import { createOverlayWindow } from '@/teams/overlay/electron/background'
+import gameOverlay from '@/electron/game-overlay.ts'
+import { gkl } from '@/modules/electron-keybinding/utils.ts'
+import { loadStores } from '@/store/stores.ts'
 
 const App = () => {
   const isDevelopment = import.meta.env.DEV
@@ -26,17 +33,21 @@ const App = () => {
       .whenReady()
       .then(async () =>
         Promise.all([
-          await ElectronWindowManager.registerInstance(
+          ElectronWindowManager.registerInstance(
             'messenger',
             createMessengerWindow,
           ),
-          await ElectronWindowManager.registerInstance(
+          ElectronWindowManager.registerInstance(
             'overlay',
             createOverlayWindow,
           ),
-          await ElectronWindowManager.registerInstance(
+          ElectronWindowManager.registerInstance(
             'speech-worker',
             createSpeechWorkerWindow,
+          ),
+          ElectronWindowManager.registerInstance(
+            'messenger-game-overlay',
+            createMessengerGameOverlayWindow,
           ),
         ]),
       )
@@ -44,6 +55,13 @@ const App = () => {
   const registerElectronPinia = () => {
     createApp(h({})).use(createPinia().use(electronPiniaPlugin()));
   }
+
+  const registerStores = () => {
+    return loadStores()
+  }
+
+  const startGameOverlay = async () =>
+    app.whenReady().then(() => gameOverlay.start())
 
   const startAppServer = async () =>
     app.whenReady().then(async () =>
@@ -61,6 +79,7 @@ const App = () => {
     app.commandLine.appendSwitch('disable-renderer-backgrounding')
     app.commandLine.appendSwitch('ignore-certificate-errors')
     app.commandLine.appendSwitch('wm-window-animations-disabled')
+    if (import.meta.env.DEV) app.commandLine.appendSwitch('disable-http-cache')
 
     /* Disabling Hardware Acceleration does the following:
      * - fixes ui freeze in DevTools when unfocused
@@ -81,6 +100,8 @@ const App = () => {
   }
 
   const onQuit = () => {
+    gkl?.kill()
+    gameOverlay.quit()
     /* fixes app.quit(): https://stackoverflow.com/a/75369483 */
     ElectronWindowManager.getInstances().forEach(({ window }) => {
       window.removeAllListeners()
@@ -105,7 +126,9 @@ const App = () => {
     app.on('ready', async () => {
       if (isDevelopment) {
         try {
-          await installExtension(VUEJS3_DEVTOOLS)
+          await ((installExtension as any).default as typeof installExtension)(
+            VUEJS_DEVTOOLS,
+          )
         } catch (e) {
           console.error(
             'Vue Devtools failed to install:',
@@ -146,6 +169,15 @@ const App = () => {
         handleQuit(true)
       }
     })
+
+    app.on('web-contents-created', (_, webContents) => {
+      webContents.on('preload-error', (_, preloadPath, error) => {
+        console.error(
+          `Preload script error:\nPath: ${preloadPath}\nError:`,
+          error,
+        )
+      })
+    })
   }
 
   function start() {
@@ -153,17 +185,23 @@ const App = () => {
       exec('Register app listeners', () => addEventListeners()),
       exec('Configure app defaults', () => configureAppDefaults()),
       exec('Register electron-pinia', () => registerElectronPinia()),
-      ///exec('Register updater', () => registerElectronUpdater()),
+      exec('Load stores', () => registerStores()),
+      /* Check if app needs to run as admin before continuing */
       exec('Register startup', () => registerElectronStartup()),
-      exec('Register debug', () => registerElectronDebug()),
-      exec('Bridge modules', () => bridgeModules()),
-      exec('Create tray', () => createTray()),
-      exec('Create windows', () => createWindows()),
-      exec('Start server', () => startAppServer()),
-      exec('Register display', () => registerElectronDisplay()),
-      exec('Register keybindings', () => registerElectronKeybinding()),
-      exec('Handle Cache', () => registerElectronCache()),
-    ])
+    ]).then(async () => {
+      return Promise.all([
+        //exec('Register updater', () => registerElectronUpdater()),
+        exec('Register debug', () => registerElectronDebug()),
+        exec('Bridge modules', () => bridgeModules()),
+        exec('Start Game Overlay', () => startGameOverlay()),
+        exec('Create tray', () => createTray()),
+        exec('Create windows', () => createWindows()),
+        exec('Start server', () => startAppServer()),
+        exec('Register display', () => registerElectronDisplay()),
+        exec('Register keybindings', () => registerElectronKeybinding()),
+        exec('Handle Cache', () => registerElectronCache()),
+      ])
+    })
   }
 
   return {

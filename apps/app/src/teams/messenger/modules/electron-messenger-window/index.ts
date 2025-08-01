@@ -2,7 +2,8 @@ import ElectronWindowManager from '@/modules/electron-window-manager'
 import { mouse } from '@/modules/node-mouse'
 import throttle from 'lodash/throttle'
 import { Hitbox } from '@/modules/vue-hitboxes/types'
-import { BrowserWindow, screen, shell } from 'electron'
+import { app, BrowserWindow, screen, shell } from 'electron'
+
 import {
   useMessengerStore,
   useMessengerWindowStore,
@@ -12,6 +13,8 @@ import { useHitboxesStore } from '@/modules/vue-hitboxes/hitboxes.store'
 import { Deferred } from '@packages/toolbox'
 import ffi from 'ffi-napi'
 import { getNativeWindowHandleInt } from '@/utils/electron-window'
+import gameOverlay from '@/electron/game-overlay.ts'
+import { focusWindow } from 'forcefocus'
 
 export const ElectronMessengerWindow = () => {
   /* use isFocused as source of truth instead of window.isFocused() as in some instances
@@ -22,6 +25,7 @@ export const ElectronMessengerWindow = () => {
   // let lastKeypressTime = 0
   // const doubleKeypressDelta = 500
   let registeredWindow: BrowserWindow | null = null
+  let WinControl: any | null = null
   let hitboxesStore: ReturnType<typeof useHitboxesStore> | undefined
   let settingsStore: ReturnType<typeof useSettingsStore> | undefined
   let messengerStore: ReturnType<typeof useMessengerStore> | undefined
@@ -47,7 +51,7 @@ export const ElectronMessengerWindow = () => {
     GetTopWindow: ['long', ['long']],
     BringWindowToTop: ['bool', ['long']],
     SwitchToThisWindow: ['void', ['long', 'bool']],
-    GetWindowThreadProcessId: ['int', ['long', 'int']],
+    GetWindowThreadProcessId: ['int', ['long', 'pointer']],
     SetWindowPos: [
       'bool',
       ['long', 'long', 'int', 'int', 'int', 'int', 'uint'],
@@ -69,7 +73,9 @@ export const ElectronMessengerWindow = () => {
         ) {
           window.webContents.devToolsWebContents.focus()
         } else {
-          window.webContents.openDevTools({ mode: 'undocked' })
+          setTimeout(() => {
+            window.webContents.openDevTools({ mode: 'undocked' })
+          }, 300)
         }
       })
       resolve(true)
@@ -78,43 +84,43 @@ export const ElectronMessengerWindow = () => {
   const ensureNativeFocus = () => {
     const window = getWindow()
     if (window) {
-      const windowNativeHandle = getNativeWindowHandleInt(window)
-      user32.SetForegroundWindow(windowNativeHandle)
+      focusWindow(window)
     }
   }
 
-  const focus = (context: 'mouse' | 'keyboard') =>
-    new Promise((resolve, reject) => {
+  const focus = (context: 'mouse' | 'keyboard', native = false) =>
+    new Promise((_, reject) => {
+      const foregroundWindowPid = WinControl?.getForeground()?.getPid()
+      const isProcessHooked = gameOverlay.isProcessHooked(foregroundWindowPid)
+      if (isProcessHooked && !gameOverlay.intercepting) {
+        gameOverlay.startIntercept()
+        return
+      }
       messengerWindowStore?.$patch({ focusContext: context })
       const window = getWindow()
       if (window) {
         if (!isFocused) {
+          if (native) {
+            // Need to call ensureNativeFocus as late as possible otherwise it can break the foreground window
+            window.once('focus', () => {
+              // The first time ensureNative is called after the app is alseep,
+              // it has a chance to close the window right away and sometimes
+              // can cause softlock of the system in rare occasions
+              // so we need to time it out as late as possible.
+              setTimeout(ensureNativeFocus, 200)
+            })
+          }
           foregroundWindow = user32.GetForegroundWindow()
           // to prevent shenanigans with some softwares (*coughs* League of Legends *coughs*)
           // this makes sure to blur first with ffi-napi for safe measures
           user32.SetForegroundWindow(0)
           isFocused = true
-          // window.once('show', () => {
-          //   /* The focus needs to be delayed after the show() to actually focus properly... */
-          //   setTimeout(() => {
-          //     isFocused = true
-          //     window.focus() // Fixes issues with Chrome and input elements
-          //     resolve(true)
-          //   }, 250)
-          // })
 
           /* order matters */
           window.setFocusable(true) // Fixes alwaysOnTop going in the background sometimes for some reasons
           window.setIgnoreMouseEvents(false)
           window.show() // Fixes focus properly with Hardware Acceleration for some reasons
           window.focus() // needed for immediate focus in case the window is already shown
-
-          // In applications like League of Legends, the window doesn't always receive focus
-          // but we can force it manually once we're sure the window is shown 100%.
-          // Only possible with a timeout atm.
-          setTimeout(() => {
-            ensureNativeFocus()
-          }, 100)
         }
       } else {
         reject()
@@ -147,6 +153,12 @@ export const ElectronMessengerWindow = () => {
 
   const hide = (returnFocus?: boolean) =>
     new Promise((resolve, reject) => {
+      const foregroundWindowPid = WinControl?.getForeground()?.getPid()
+      const isProcessHooked = gameOverlay.isProcessHooked(foregroundWindowPid)
+      if (isProcessHooked && gameOverlay.intercepting) {
+        gameOverlay.stopIntercept()
+        return
+      }
       const window = getWindow()
       if (window) {
         blur(returnFocus)
@@ -161,31 +173,42 @@ export const ElectronMessengerWindow = () => {
     })
 
   const show = () =>
-    new Promise((resolve, reject) => {
+    new Promise((resolve) => {
       const window = getWindow()
       if (window) {
         focus('mouse')
         resolve(true)
       } else {
-        reject()
+        resolve(false)
       }
     })
 
-  const onMouseMove = (mouseX = 0, mouseY = 0) => {
+  const onMouseMove = (initialMouseX = 0, initialMouseY = 0) => {
     if (!hitboxesStore) return
     const window = getWindow()
     if (window) {
       if (!window.isDestroyed() && window.isVisible()) {
-        // const { x: mouseX = 0, y: mouseY = 0 } = event
         const [windowX, windowY] = window.getPosition()
         const { hitboxes } = hitboxesStore
         const isWithinAnyHitboxes = hitboxes
           .filter(({ w, h }) => w && h)
-          .some(({ x, y, w, h }: Hitbox) => {
+          .some((hitbox: Hitbox) => {
+            const { x: mouseX, y: mouseY } = screen.screenToDipPoint({
+              x: initialMouseX,
+              y: initialMouseY,
+            })
+            const scaleFactor = screen.getDisplayNearestPoint({
+              x: mouseX,
+              y: mouseY,
+            }).scaleFactor
+            const x1 = hitbox.x / scaleFactor
+            const y1 = hitbox.y / scaleFactor
+            const x2 = (hitbox.x + hitbox.w) / scaleFactor
+            const y2 = (hitbox.x + hitbox.w) / scaleFactor
             const isWithinXHitbox =
-              mouseX >= windowX + x && mouseX <= windowX + x + w
+              mouseX >= windowX + x1 && mouseX <= windowX + x2
             const isWithinYHitbox =
-              mouseY >= windowY + y && mouseY <= windowY + y + h
+              mouseY >= windowY + y1 && mouseY <= windowY + y2
             return isWithinXHitbox && isWithinYHitbox
           })
         if (isWithinAnyHitboxes) {
@@ -197,17 +220,30 @@ export const ElectronMessengerWindow = () => {
     }
   }
 
-  const toggleWindow = throttle((context: 'mouse' | 'keyboard') => {
-    const window = getWindow()
-    if (window) {
-      if (window.isVisible()) {
-        hide()
-      } else {
-        focus(context)
+  const toggleWindow = throttle(
+    (context: 'mouse' | 'keyboard', native = false) => {
+      const foregroundWindowPid = WinControl?.getForeground()?.getPid()
+      const isProcessHooked = gameOverlay.isProcessHooked(foregroundWindowPid)
+      if (isProcessHooked && !gameOverlay.intercepting) {
+        gameOverlay.startIntercept()
+        return
       }
-    }
-    return Promise.resolve()
-  }, 250)
+      if (isProcessHooked && gameOverlay.intercepting) {
+        gameOverlay.stopIntercept()
+        return
+      }
+      const window = getWindow()
+      if (window) {
+        if (window.isVisible()) {
+          hide()
+        } else {
+          focus(context, native)
+        }
+      }
+      return Promise.resolve()
+    },
+    250,
+  )
 
   const setDisplay = (id?: Electron.Display['id'] | null) => {
     const window = getWindow()
@@ -235,6 +271,7 @@ export const ElectronMessengerWindow = () => {
     if (!window) return
     window.webContents.zoomLevel = 0
   }
+
   const addEventListeners = () => {
     const window = getWindow()
     //mouse.on('move', throttle(onMouseMove, 150))
@@ -281,11 +318,17 @@ export const ElectronMessengerWindow = () => {
       setDisplay(localSettingsStore.display)
     })
     ready.resolve(window)
+    WinControl = require('win-control').Window
   }
 
   isReady().then(() => {
     addEventListeners()
   })
+
+  const restart = () => {
+    app.relaunch()
+    app.exit()
+  }
 
   return {
     openDevTools,
@@ -301,6 +344,7 @@ export const ElectronMessengerWindow = () => {
     zoomIn,
     zoomOut,
     resetZoom,
+    restart,
   }
 }
 

@@ -8,7 +8,7 @@
         </template>
       </NvTooltip>
       <NvTooltip>
-        <NvText>Dark mode</NvText>
+        <NvText style="text-transform: capitalize">{{settingsStore.toggleDarkMode ? settingsStore.theme : "dark" }} mode</NvText>
         <template #reference>
           <NvButton icon-name="nv-moon-eclipse" size="sm" @click="toggleDarkMode" />
         </template>
@@ -18,7 +18,8 @@
         <template #reference>
           <NvButton
             :type="
-              route.name?.startsWith('messages') && messengerContext.isViewShown.value
+              route.name?.startsWith('messages') &&
+              messengerContext.isViewShown.value
                 ? 'plain'
                 : 'default'
             "
@@ -34,7 +35,8 @@
         <template #reference>
           <NvButton
             :type="
-              route.name?.startsWith('settings') && messengerContext.isViewShown.value
+              route.name?.startsWith('settings') &&
+              messengerContext.isViewShown.value
                 ? 'plain'
                 : 'default'
             "
@@ -59,12 +61,7 @@
   </NvCard>
   <VTour ref="tour" :steps="steps">
     <template #content="{ step }">
-      <NvText
-        :style="{
-          color: 'white',
-        }"
-        >{{ steps[step.currentStep].content }}
-      </NvText>
+      <NvText>{{ steps[step.currentStep].content }} </NvText>
     </template>
     <template #actions="scope">
       <NvGroup :key="step" justify="apart">
@@ -113,7 +110,9 @@ import { NvButton, NvCard, NvGroup, NvText, NvTooltip } from '@packages/ui'
 import { inject, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSettingsStore } from '@/features/settings/store'
-import { emitIPCToggleDarkMode } from '@/electron/events/renderer'
+import { emitIPCSelectTheme } from '@/electron/events/renderer'
+import { isGameOverlay } from '@/consts.ts'
+import { emitIPCGameOverlayStopIntercept } from '@/electron/events/renderer.ts'
 
 const settingsStore = useSettingsStore()
 const messengerContext = inject('messenger')
@@ -122,6 +121,9 @@ const route = useRoute()
 
 const hide = () => {
   ElectronMessengerWindow.hide()
+  if (isGameOverlay) {
+    emitIPCGameOverlayStopIntercept()
+  }
 }
 const tour = ref(null)
 const step = ref(0)
@@ -132,8 +134,9 @@ const startTour = () => {
 }
 const toggleDarkMode = () =>
 {
-  emitIPCToggleDarkMode()
+  emitIPCSelectTheme(settingsStore.toggleDarkMode ? settingsStore.theme : 'dark')
 }
+
 const steps = [
   {
     target: '[data-v-step="messenger-text-input"]',
@@ -154,7 +157,8 @@ const steps = [
   },
   {
     target: '[data-v-step="engine-voice-select"]',
-    content: 'You can select a different voice supported by the selected speech engine here.',
+    content:
+      'You can select a different voice supported by the selected speech engine here.',
     placement: 'top',
   },
   {
@@ -183,12 +187,14 @@ const steps = [
   },
   {
     target: '[data-v-step="translation-button"]',
-    content: 'You can enable translation to translate messages before sending them here.',
+    content:
+      'You can enable translation to translate messages before sending them here.',
     placement: 'top',
   },
   {
     target: '[data-v-step="dictionary-button"]',
-    content: 'You can provide the definition of some words to improve their pronunciation here.',
+    content:
+      'You can provide the definition of some words to improve their pronunciation here.',
     placement: 'top',
   },
   {
@@ -221,7 +227,9 @@ const steps = [
     target: '[data-v-step="messenger-window"]',
     content: `Finally, you can toggle the window by pressing ${settingsStore.keybindings.toggleMessengerWindow
       .map((k) => `[${k.key}]`)
-      .join(' + ')}. If the text input is focused, you can also press [Esc] to close the window.`,
+      .join(
+        ' + ',
+      )}. If the text input is focused, you can also press [Esc] to close the window.`,
     placement: 'top',
   },
 ]

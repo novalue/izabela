@@ -14,7 +14,13 @@
         @enter="onInputEnter"
         @esc="onInputEsc"
         @focus="onInputFocus"
-        @space="(e) => settingsStore.messageMode === 'word' && [playMessage(), e.preventDefault()]"
+        @space="
+          (e) =>
+            settingsStore.messageMode === 'word' && [
+              playMessage(),
+              e.preventDefault(),
+            ]
+        "
       />
       <NvButton
         data-v-step="messenger-text-input-submit"
@@ -26,14 +32,19 @@
   </NvCard>
 </template>
 <script lang="ts" setup>
-import { NvButton, NvCard, NvGroup } from '@packages/ui'
-import { computed, ref, watch } from 'vue'
+import { NvButton, NvCard, NvGroup, Ref } from '@packages/ui'
+import { computed, ref, watch, inject } from 'vue'
 import { useMessengerWindowStore } from '@/teams/messenger/store'
-import { emitIPCSay } from '@/electron/events/renderer'
+import {
+  emitIPCGameOverlayStopIntercept,
+  emitIPCSay,
+} from '@/electron/events/renderer'
 import { useSpeechStore } from '@/features/speech/store'
 import { useSettingsStore } from '@/features/settings/store'
 import NvSpeechEngineInput from '@/features/speech/components/inputs/NvSpeechEngineInput.vue'
 import { socket } from '@/services'
+import { isGameOverlay } from '@/consts.ts'
+import { useEventListener } from '@vueuse/core'
 
 const { ElectronMessengerWindow } = window
 const messengerWindowStore = useMessengerWindowStore()
@@ -46,6 +57,9 @@ const inputRef = computed(() => messengerInput.value?.input)
 
 const onInputEsc = () => {
   ElectronMessengerWindow.hide()
+  if (isGameOverlay) {
+    emitIPCGameOverlayStopIntercept()
+  }
 }
 
 const placeholder = computed(() => {
@@ -75,16 +89,35 @@ const onInputBlur = () => {
 const onInputEnter = () => {
   if (settingsStore.hideWindowOnMessage || !inputValue.value) {
     ElectronMessengerWindow.hide()
+    if (isGameOverlay) {
+      emitIPCGameOverlayStopIntercept()
+    }
   }
   playMessage()
 }
 
 const onWindowFocus = () => {
-  if (inputRef.value && messengerWindowStore.focusContext === 'keyboard') inputRef.value.focus()
+  if (inputRef.value && messengerWindowStore.focusContext === 'keyboard')
+    inputRef.value.focus()
 }
 
 const onWindowBlur = () => {
   if (inputRef.value) inputRef.value.blur()
+}
+
+const offscreenFocusFix: Ref<HTMLElement> = inject('offscreen-focus-fix')
+
+useEventListener(offscreenFocusFix, 'click', () => {
+  inputRef.value.focus()
+})
+
+if (isGameOverlay) {
+  window.addEventListener('focus', () => {
+    inputRef.value.focus()
+  })
+  window.addEventListener('blur', () => {
+    inputRef.value.blur()
+  })
 }
 
 watch(

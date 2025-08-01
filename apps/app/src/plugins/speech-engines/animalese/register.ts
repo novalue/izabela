@@ -1,20 +1,17 @@
 import { DEFAULT_LANGUAGE_CODE } from '@/consts'
 import { registerEngine } from '@/modules/speech-engine-manager'
-import { AxiosResponse } from 'axios'
 import animalese from '@packages/animalese'
 import NvVoiceSelect from './NvVoiceSelect.vue'
 import NvSettings from './NvSettings.vue'
 import { ENGINE_ID, ENGINE_NAME, getVoiceName } from './shared'
-import { getProperty, setProperty } from './store'
+import { getProperty, store } from './store'
 
-function dataURItoBlob(dataURI: string) {
+function dataURItoUint8Array(dataURI: string) {
   // convert base64/URLEncoded data component to raw binary data held in a string
   let byteString
-  if (dataURI.split(',')[0].indexOf('base64') >= 0) byteString = atob(dataURI.split(',')[1])
+  if (dataURI.split(',')[0].indexOf('base64') >= 0)
+    byteString = atob(dataURI.split(',')[1])
   else byteString = unescape(dataURI.split(',')[1])
-
-  // separate out the mime component
-  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
 
   // write the bytes of the string to a typed array
   const ia = new Uint8Array(byteString.length)
@@ -23,7 +20,7 @@ function dataURItoBlob(dataURI: string) {
     ia[i] = byteString.charCodeAt(i)
   }
 
-  return new Blob([ia], { type: mimeString })
+  return ia
 }
 
 const getSelectedVoice = () => {
@@ -57,20 +54,43 @@ registerEngine({
   },
   commands: (voice: any) => [],
   synthesizeSpeech({ payload }) {
-    const audio = animalese.getAudio(payload.text, payload.voice.shortened, payload.voice.pitch)
-    const blob = dataURItoBlob(audio.dataURI)
-    
-    const response : AxiosResponse<Blob, any> = {
-      data: blob,
-      status: 200,
-      statusText: 'OK',
-      headers: {},
-      config: {}
-    }
+    const audio = animalese.getAudio(
+      payload.text,
+      payload.voice.shortened,
+      payload.voice.pitch,
+    )
+    const audioData = dataURItoUint8Array(audio.dataURI)
 
-    return Promise.resolve(response)
+    let response : Promise<Response> = new Promise<Response>((resolve, reject) => {
+      if (audioData.length == 0) {
+        const errorResponse = {
+          error : 503,
+          message : "Cannot generate Animalese's speech."
+        }
+        
+        const body = new Blob([JSON.stringify(errorResponse)], { type: "application/json" });
+        let options: ResponseInit = { status: 503, statusText: 'Service Unavailable'}
+        reject(new Response(body, options))
+      } else {
+        const audioResponse = {
+          available : true,
+          captions : [],
+          audio : Buffer.from(audioData).toString('base64'),
+          type : 'audio/wav'
+        }
+
+        const body = new Blob([JSON.stringify(audioResponse)], { type: "application/json" });
+        let options: ResponseInit = { status: 200, statusText: 'OK'}
+        resolve(new Response(body, options))
+      }
+    })
+
+    return response
+  },
+  getUseCacheOnEveryRequest() {
+    return getProperty('useCacheOnEveryRequest')
   },
   voiceSelectComponent: NvVoiceSelect,
   settingsComponent: NvSettings,
-  store: { setProperty, getProperty },
+  store,
 })

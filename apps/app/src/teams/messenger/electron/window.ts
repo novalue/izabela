@@ -1,8 +1,8 @@
-import { app, BrowserWindow, screen, Menu, MenuItem, nativeTheme } from 'electron'
+import { BrowserWindow, screen, Menu, MenuItem, nativeTheme } from 'electron'
 import path from 'path'
 import { createProtocol } from '@/electron/utils'
 import { ipcMain } from 'electron-postman'
-import { onIPCVoiceSpellcheckLocale, onIPCToggleDarkMode } from '@/electron/events/main'
+import { onIPCVoiceSpellcheckLocale, onIPCSelectTheme } from '@/electron/events/main'
 import electronMessengerWindow from '@/teams/messenger/modules/electron-messenger-window'
 import { useSettingsStore } from '@/features/settings/store'
 
@@ -27,6 +27,8 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
       spellcheck: true
     },
   })
+  ipcMain.registerBrowserWindow(name, window)
+  window.webContents.setMaxListeners(Infinity)
 
   {
     const primaryDisplay = screen.getPrimaryDisplay()
@@ -43,7 +45,9 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
     electronMessengerWindow.start(window)
   })
 
-  ipcMain.registerBrowserWindow(name, window)
+  if (import.meta.env.DEV) {
+    window.webContents.openDevTools({ mode: 'undocked' })
+  }
 
   window.webContents.session.setSpellCheckerLanguages([settingsStore.voiceLocale])
 
@@ -60,13 +64,15 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
 
   nativeTheme.themeSource = (settingsStore.toggleDarkMode ? 'dark' : 'light')
 
-  onIPCToggleDarkMode(() => {
-    if (nativeTheme.shouldUseDarkColors) {
-      nativeTheme.themeSource = 'light'
-    } else {
-      nativeTheme.themeSource = 'dark'
+  onIPCSelectTheme((theme : string) => {
+    let prevState = nativeTheme.shouldUseDarkColors
+    nativeTheme.themeSource = (theme === 'dark' ? 'dark' : 'light')
+    let newState = nativeTheme.shouldUseDarkColors
+
+    if (prevState != newState) {
+      settingsStore.$patch({toggleDarkMode: nativeTheme.shouldUseDarkColors})
+      window.webContents.reload()
     }
-    settingsStore.$patch({toggleDarkMode: nativeTheme.shouldUseDarkColors})
   })
 
   window.webContents.on('context-menu', (event, params) => {
@@ -101,10 +107,9 @@ const createWindow = async (name: string): Promise<BrowserWindow> => {
   
   if (import.meta.env.VITE_DEV_SERVER_URL) {
     await window.loadURL(path.join(import.meta.env.VITE_DEV_SERVER_URL as string, filePath))
-    if (import.meta.env.DEV) window.webContents.openDevTools({ mode: 'undocked' })
   } else {
     createProtocol('app')
-    window.loadURL(`app://${filePath}`)
+    await window.loadURL(`app://${filePath}`)
   }
 
   return window

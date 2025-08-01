@@ -1,1 +1,1 @@
-export { plugin as electronPiniaPlugin } from './plugin'
+export { plugin as electronPiniaPlugin, storesStates, stores } from './plugin'

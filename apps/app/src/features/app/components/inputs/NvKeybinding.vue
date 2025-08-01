@@ -1,6 +1,7 @@
 <template>
   <template v-if="isListeningToKeys">
     <NvButton
+      ref="target"
       class="pointer-events-none"
       title="Press Esc to cancel. Hold to remove"
       v-bind="$attrs"
@@ -8,13 +9,15 @@
     </NvButton>
   </template>
   <template v-else>
-    <NvButton v-bind="$attrs" @click="isListeningToKeys = true">{{ readableKeybinding }}</NvButton>
+    <NvButton v-bind="$attrs" @click="isListeningToKeys = true">{{
+      readableKeybinding
+    }}</NvButton>
   </template>
 </template>
 <script lang="ts" setup>
 import { NvButton } from '@packages/ui'
-import { computed, defineEmits, defineProps, PropType, Ref, ref, shallowRef, watch } from 'vue'
-import { useEventListener } from '@vueuse/core'
+import { computed, PropType, Ref, ref, shallowRef, watch } from 'vue'
+import { useEventListener, onClickOutside } from '@vueuse/core'
 import { Key } from '@/types/keybinds'
 
 const props = defineProps({
@@ -51,6 +54,15 @@ const rawCodeAliases: Record<KeyboardEvent['code'], number> = {
 }
 const escTimeout = shallowRef<ReturnType<typeof setTimeout> | null>(null)
 
+const target = ref(null)
+
+onClickOutside(target, () => {
+  if (isListeningToKeys.value) {
+    cancelled.value = true
+    isListeningToKeys.value = false
+  }
+})
+
 useEventListener(document, 'keydown', (e) => {
   if (isListeningToKeys.value) {
     if (e.code === 'Escape' && !escTimeout.value) {
@@ -86,7 +98,17 @@ useEventListener(document, 'keyup', (e) => {
 
 const keybinding: Ref<Key[]> = computed(() =>
   Object.values(listenedKeys.value).map(
-    ({ code, keyCode, which, key, shiftKey, altKey, ctrlKey, metaKey, charCode }) => ({
+    ({
+      code,
+      keyCode,
+      which,
+      key,
+      shiftKey,
+      altKey,
+      ctrlKey,
+      metaKey,
+      charCode,
+    }) => ({
       key: keyAliases[code] || key,
       code,
       keyCode,

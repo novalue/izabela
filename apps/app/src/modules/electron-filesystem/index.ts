@@ -1,19 +1,17 @@
-import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'fs/promises'
+import {
+  copyFile,
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'fs/promises'
 import path from 'path'
 import { app, BrowserWindow, dialog } from 'electron'
-import { IzabelaMessagePayload } from '@/modules/izabela/types'
 import ElectronWindowManager from '@/modules/electron-window-manager'
 import { useSettingsStore } from '@/features/settings/store'
 import pkg from '@root/package.json'
-import mime from 'mime'
-
-// reusable arrow function to encode file data to base64 encoded string
-const convertFileToBase64 = async (filePath: string) => {
-  // read binary data from file
-  const bitmap = await readFile(filePath)
-  // convert the binary data to base64 encoded string
-  return bitmap.toString('base64')
-}
 
 export const ElectronFilesystem = () => ({
   importGoogleCloudSpeechCredentials(credentialsPath: string): Promise<string> {
@@ -24,7 +22,9 @@ export const ElectronFilesystem = () => ({
     )
     // NOTE: need to secure this one day somehow
     return mkdir(credentialsDirPath, { recursive: true })
-      .then(() => copyFile(credentialsPath, googleCloudSpeechCredentialsFilePath))
+      .then(() =>
+        copyFile(credentialsPath, googleCloudSpeechCredentialsFilePath),
+      )
       .then(() => Promise.resolve(googleCloudSpeechCredentialsFilePath))
   },
   getGoogleCloudSpeechCredentialsPath(): Promise<string> {
@@ -38,55 +38,56 @@ export const ElectronFilesystem = () => ({
       .catch(() => '')
   },
   async downloadMessagePrompt(
-    message: IzabelaMessagePayload,
     filename: string,
-    content: string,
+    content: ArrayBuffer | null,
   ): Promise<string> {
+    if (!content) return Promise.reject(Error('The buffer is empty'))
+
     const settingsStore = useSettingsStore()
     await settingsStore.$whenReady()
     const extension = "mp3"
     const directory =
-      settingsStore.preferredSavDir && (await stat(settingsStore.preferredSavDir))
+      settingsStore.preferredSavDir &&
+      (await stat(settingsStore.preferredSavDir))
         ? settingsStore.preferredSavDir
         : app.getPath('downloads')
     const options = {
       title: 'Save file',
       defaultPath: path.join(directory, `${filename}.${extension}`),
-      // defaultPath: app.getPath('downloads'),
       filters: [
         {
           name: 'Audio',
-          extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus', 'webm', 'wma'],
+          extensions: [
+            'mp3',
+            'wav',
+            'ogg',
+            'flac',
+            'aac',
+            'm4a',
+            'opus',
+            'webm',
+            'wma',
+          ],
         },
         { name: 'All Files', extensions: ['*'] },
       ],
     }
 
     const res = await dialog.showSaveDialog(
-      ElectronWindowManager.getInstanceByName('messenger')?.window as BrowserWindow,
+      ElectronWindowManager.getInstanceByName('messenger')
+        ?.window as BrowserWindow,
       options,
     )
     if (!res.filePath) return Promise.reject(Error('No file selected'))
 
-    let messageData = { audio: "" };
-    try 
-    {
-      let bufferData = Buffer.from(content.split(',').pop() as string, 'base64').toString('utf-8');
-      messageData = JSON.parse(bufferData);
-    } catch (_) {}
-    await writeFile(res.filePath, messageData.audio, 'base64')
+    await writeFile(res.filePath, Buffer.from(content))
     settingsStore.preferredSavDir = path.dirname(res.filePath)
     return Promise.resolve(res.filePath)
   },
   async cacheAudio(id: string, content: string): Promise<boolean> {
-    const extension = content.split(';')[0].split('/')[1]
     const directory = path.join(app.getPath('temp'), pkg.productName, 'cache')
     await mkdir(directory, { recursive: true })
-    await writeFile(
-      path.join(directory, `${id}.${extension}`),
-      content.split(',').pop() as string,
-      'base64',
-    )
+    await writeFile(path.join(directory, id), content, 'ascii')
     return Promise.resolve(true)
   },
   async getCachedAudio(id: string): Promise<string | null> {
@@ -95,10 +96,7 @@ export const ElectronFilesystem = () => ({
     const files = await readdir(directory)
     const file = files.find((f) => f.startsWith(id))
     if (file) {
-      const mimeType = mime.getType(path.join(directory, file))
-      return Promise.resolve(
-        `data:${mimeType};base64,${await convertFileToBase64(path.join(directory, file))}`,
-      )
+      return Promise.resolve(readFile(path.join(directory, file), {encoding : 'ascii'}))
     }
     return Promise.resolve(null)
   },
@@ -112,6 +110,12 @@ export const ElectronFilesystem = () => ({
       return Promise.resolve(true)
     }
     return Promise.resolve(false)
+  },
+  async clearCache(): Promise<boolean> {
+    const directory = path.join(app.getPath('temp'), pkg.productName, 'cache')
+    await rm(directory, { recursive: true, force: true })
+    await mkdir(directory, { recursive: true })
+    return Promise.resolve(true)
   },
 })
 

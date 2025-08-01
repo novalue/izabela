@@ -38,7 +38,7 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
     {
       body: {
         credentials: { apiKey, region },
-        payload,
+        payload
       },
     },
     res,
@@ -53,7 +53,13 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
       const synthesizer = new SpeechSynthesizer(speechConfig)
 
       await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
-        const answer: SpeechSynthesizerAnswer = { caption: [], audio: '', note: '' }
+        const answer: SpeechSynthesizerAnswer = { 
+          available : false, 
+          captions : [], 
+          audio : '', 
+          type : '', 
+          note : '' 
+        }
         let retries = 0
 
         synthesizer.wordBoundary = function(_, event) {
@@ -65,16 +71,18 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
             duration: event.duration,
             moment: event.audioOffset
           }
-          answer.caption.push(wordBoundary)
+          answer.captions.push(wordBoundary)
         }
 
         synthesizer.synthesisStarted = () => {
-          answer.caption = []
+          answer.captions = []
           answer.audio = ''
-          answer.note = ''
+          answer.type = 'audio/mp3'
+          answer.note = 'Synthesising...'
         }
 
         synthesizer.synthesisCompleted = (_, event) => {
+          answer.available = true
           answer.audio = Buffer.from(event.result.audioData).toString('base64')
           answer.note = 'Times retried: ' + retries
           resolve(answer)
@@ -92,7 +100,11 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
               }
               retries += 1
             } else {
-              reject(answer)
+              let errorResponse = {
+                error : 503,
+                message: "Could not synthesize the message after 20 retries."
+              }
+              reject(errorResponse)
             }
           }, 500 + retries * 250)
         }

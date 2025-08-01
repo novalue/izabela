@@ -1,9 +1,7 @@
 import { definePluginStore } from '@/store'
 import { ENGINE_ID } from './shared'
 
-export const { setProperty, getProperty } = definePluginStore(ENGINE_ID, {
-  publicKey: '',
-  privateKey: '',
+const exposedProperties = {
   selectedVoice: {
     added_at: null,
     architecture: 'talknet',
@@ -33,8 +31,23 @@ export const { setProperty, getProperty } = definePluginStore(ENGINE_ID, {
     accent: '',
     age: '',
     description: '',
-    image_url: 'https://uberduck-images.s3.amazonaws.com/commercial/carolyn.png',
+    image_url:
+      'https://uberduck-images.s3.amazonaws.com/commercial/carolyn.png',
   },
-  useLocalCredentials: false,
-  favoriteVoiceIds: [],
-})
+}
+
+export const store = definePluginStore(
+  ENGINE_ID,
+  {
+    publicKey: '',
+    privateKey: '',
+    useLocalCredentials: false,
+    favoriteVoiceIds: [],
+    useCacheOnEveryRequest: true,
+    streamAudio: true,
+    ...exposedProperties,
+  },
+  Object.keys(exposedProperties) as (keyof typeof exposedProperties)[],
+)
+
+export const { setProperty, getProperty } = store

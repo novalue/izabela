@@ -17,7 +17,8 @@
     <template #optionAfter="{ option, hover }">
       <span
         v-show="
-          (!option.children && hover) || favoriteVoiceIds.includes(option.id)
+          (!option.children && (hover || isGameOverlay)) ||
+          favoriteVoiceIds.includes(option.id)
         "
       >
         <NvButton
@@ -54,6 +55,8 @@ import {
   LIST_VOICES_QUERY_KEY,
 } from './shared'
 import { getProperty, setProperty } from './store'
+import { isGameOverlay } from '@/consts.ts'
+import { useSettingsStore } from '@/features/settings/store'
 
 const queryClient = useQueryClient()
 const computedParams = computed(() => ({
@@ -101,8 +104,16 @@ const options = computed(() => {
 const favoriteVoiceIds = computed<string[]>(() =>
   getProperty('favoriteVoiceIds'),
 )
+
+const settingsStore = useSettingsStore()
+
 watch(
-  () => getProperty('apiKey', true),
+  () => [
+    getProperty('apiKey'),
+    getProperty('useLocalCredentials'),
+    settingsStore.universalApiKey,
+    settingsStore.universalApiEndpoint,
+  ],
   () => canFetch.value && queryClient.refetchQueries(LIST_VOICES_QUERY_KEY),
 )
 </script>

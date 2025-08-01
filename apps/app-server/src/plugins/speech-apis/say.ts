@@ -3,8 +3,8 @@ import say from 'say'
 import { handleError } from '../../utils/requests'
 import { WordBoundary, SpeechSynthesizerAnswer, getWordBoundaryType } from '../../utils/speech-apis/types'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import fs from 'fs'
+import { v4 as uuid } from 'uuid'
 
 const plugin: Izabela.Server.Plugin = ({ app, config }) => {
   const listVoicesHandler: RequestHandler = async (_, res) => {
@@ -32,21 +32,26 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
     },
     res,
   ) => {
-    const outputFile = path.join(config?.tempPath || '', uuid() + '.mp3')
+    const outputFile = path.join(config?.tempPath || '', uuid() + '.wav')
     try {
       fs.mkdirSync(path.parse(outputFile).dir, { recursive: true })
       fs.writeFileSync(outputFile, '')
 
       await new Promise<SpeechSynthesizerAnswer>((resolve, reject) => {
-        const answer: SpeechSynthesizerAnswer = { caption: [], audio: '', note: '' }
+        const answer: SpeechSynthesizerAnswer = { available : false, captions : [], audio: '', type : '', note: '' }
 
         say.export(text, voice, speed, outputFile, (error) => {
           if (error) {
-            answer.note = error
-            reject(answer)
+            let errorResponse = {
+              error : 503,
+              message : error
+            }
+            reject(errorResponse)
           } else {
             let textOffset = 0
             let textMoment = 0
+
+            answer.available = true
 
             const textSplit: string[] = text.split(' ')
             textSplit.forEach((word) => {
@@ -62,7 +67,7 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
                 duration: wordDuration,
                 moment: wordMoment
               }
-              answer.caption.push(wordBoundary)
+              answer.captions.push(wordBoundary)
 
               textOffset = wordOffset + word.length
               textMoment = wordMoment + wordDuration
@@ -70,6 +75,8 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
 
             answer.audio = fs.readFileSync(outputFile).toString('base64')
             fs.unlinkSync(outputFile)
+
+            answer.type = 'audio/wav'
 
             resolve(answer)
           }
@@ -83,7 +90,7 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
       if (fs.existsSync(outputFile)) {
         fs.unlinkSync(outputFile)
       }
-      handleError(res, 'Internal server error', e.message, 500)
+      return handleError(res, 'Internal server error', e.message, 500)
     }
   }
 

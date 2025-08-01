@@ -7,7 +7,10 @@
           <NvGroup no-wrap spacing="5">
             <NvStack>
               <NvText type="label">Dictionary</NvText>
-              <NvText>Provide the definition of a word to improve its pronunciation</NvText>
+              <NvText
+                >Provide the definition of a word to improve its
+                pronunciation</NvText
+              >
             </NvStack>
           </NvGroup>
         </NvCard>
@@ -55,7 +58,9 @@
                 </NvGroup>
                 <NvDivider direction="horizontal" />
                 <div>
-                  <NvButton size="sm" @click="addDefinition()">Add definition</NvButton>
+                  <NvButton size="sm" @click="addDefinition()"
+                    >Add definition</NvButton
+                  >
                 </div>
                 <NvDivider direction="horizontal" />
                 <NvGroup class="w-full" grow no-wrap>
@@ -67,7 +72,7 @@
                   <NvDivider class="!grow-0 h-5" direction="vertical" />
                   <NvText class="w-1/2" type="label">Definition</NvText>
                   <NvDivider class="!grow-0 h-5" direction="vertical" />
-                  <NvText class="!grow-0 invisible" icon-name="times"></NvText>
+                  <NvText class="!grow-0 invisible" icon-name="times" />
                 </NvGroup>
                 <template v-for="(definition, i) in definitions" :key="i">
                   <NvGroup class="w-full" grow no-wrap>

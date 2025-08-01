@@ -1,11 +1,10 @@
 import { DEFAULT_LANGUAGE_CODE } from '@/consts'
 import { registerEngine } from '@/modules/speech-engine-manager'
-import { AxiosResponse } from 'axios'
 import SamJs from 'sam-js'
 import NvVoiceSelect from './NvVoiceSelect.vue'
 import NvSettings from './NvSettings.vue'
 import { ENGINE_ID, ENGINE_NAME, getVoiceName } from './shared'
-import { getProperty, setProperty } from './store'
+import { getProperty, store } from './store'
 
 const text2Uint8Array = (text: string) => {
   const buffer = new Uint8Array(text.length)
@@ -38,7 +37,7 @@ const getSelectedVoice = () => {
     ? {
         ...voice,
         speed: getProperty('speed'),
-        speech: getProperty('speech'),
+        pitch: getProperty('pitch'),
         throat: getProperty('throat'),
         mouth: getProperty('mouth'),
       }
@@ -118,21 +117,37 @@ registerEngine({
     write(Uint32ToUint8Array(audioBuffer.length)) // buffer length
 
     write(audioBuffer)
-    const blob = new Blob([realBuffer], {
-      type: 'audio/vnd.wave',
+
+    let response : Promise<Response> = new Promise<Response>((resolve, reject) => {
+      if (audioBuffer.length == 0) {
+        const errorResponse = {
+          error : 503,
+          message : "Cannot generate SAM's speech."
+        }
+        
+        const body = new Blob([JSON.stringify(errorResponse)], { type: "application/json" });
+        let options: ResponseInit = { status: 503, statusText: 'Service Unavailable'}
+        reject(new Response(body, options))
+      } else {
+        const audioResponse = {
+          available : true,
+          captions : [],
+          audio : Buffer.from(realBuffer).toString('base64'),
+          type : 'audio/vnd.wave'
+        }
+
+        const body = new Blob([JSON.stringify(audioResponse)], { type: "application/json" });
+        let options: ResponseInit = { status: 200, statusText: 'OK'}
+        resolve(new Response(body, options))
+      }
     })
 
-    const response : AxiosResponse<Blob, any> = {
-      data: blob,
-      status: 200,
-      statusText: 'OK',
-      headers: {},
-      config: {}
-    }
-
-    return Promise.resolve(response)
+    return response
+  },
+  getUseCacheOnEveryRequest() {
+    return getProperty('useCacheOnEveryRequest')
   },
   voiceSelectComponent: NvVoiceSelect,
   settingsComponent: NvSettings,
-  store: { setProperty, getProperty },
+  store,
 })

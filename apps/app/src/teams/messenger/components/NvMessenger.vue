@@ -1,33 +1,106 @@
 <template>
   <div class="messengerWrapper">
     <NvHitbox id="moveable" ref="moveableTarget" class="inline-flex">
-      <div
-        ref="messenger"
-        class="messenger bg-gray-10/95 rounded grid p-4 gap-4 grid-rows-3 grid-rows-none min-w-[768px]"
-        data-v-step="messenger-window"
+      <Tippy
+        ref="popover"
+        trigger="manual"
+        interactive
+        :append-to="routerOverlay"
+        max-width="none"
+        :offset="[0, tokens.spacing['4']]"
+        placement="top-start"
+        :hide-on-click="false"
+        @show="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @shown="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @create="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @hidden="
+          (instance) => {
+            // forces refresh of pages when it's opened again
+            router.push({ path: '/' })
+            instance.popperInstance?.update()
+          }
+        "
+        @mount="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @clickOutside="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @hide="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @trigger="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @destroy="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
+        @untrigger="
+          (instance) => {
+            instance.popperInstance?.update()
+          }
+        "
       >
-        <!-- Top -->
-        <NvGroup :spacing="4">
-          <NvMessengerLinksBar />
-          <NvGroup :spacing="4" class="!flex-1">
-            <div class="moveable-handle cursor-all-scroll !flex-1">
-              <NvMessengerHandleBar />
-            </div>
-            <NvMessengerNavigationBar />
+        <NvCard
+          variant="transparent"
+          ref="messenger"
+          class="messenger rounded grid p-4 gap-4 grid-rows-3 grid-rows-none w-[768px]"
+          data-v-step="messenger-window"
+        >
+          <!-- Top -->
+          <NvGroup :spacing="4">
+            <NvMessengerLinksBar />
+            <NvGroup :spacing="4" class="!flex-1">
+              <div class="moveable-handle cursor-all-scroll !flex-1">
+                <NvMessengerHandleBar />
+              </div>
+              <NvMessengerNavigationBar />
+            </NvGroup>
           </NvGroup>
-        </NvGroup>
 
-        <!-- Middle -->
-        <NvGroup :spacing="4" justify="between">
-          <NvMessengerAudioBar />
-          <NvMessengerMessageBar />
-        </NvGroup>
+          <!-- Middle -->
+          <NvGroup :spacing="4" justify="between">
+            <NvMessengerAudioBar />
+            <NvMessengerMessageBar />
+          </NvGroup>
 
-        <!-- Bottom -->
-        <NvGroup :spacing="4" grow>
-          <NvMessengerInputBar />
-        </NvGroup>
-      </div>
+          <!-- Bottom -->
+          <NvGroup :spacing="4" grow>
+            <NvMessengerInputBar />
+          </NvGroup>
+        </NvCard>
+        <template #content>
+          <RouterView
+            @close="
+              () => {
+                popover?.hide()
+              }
+            "
+          />
+        </template>
+      </Tippy>
     </NvHitbox>
     <Moveable
       ref="moveable"
@@ -37,9 +110,9 @@
         top: 12,
         bottom: viewport.height - 12,
       }"
-      :dragTarget="doc.querySelector('.moveable-handle')"
+      :dragTarget="document.querySelector('.moveable-handle')"
       :draggable="true"
-      :elementGuidelines="[doc.querySelector('body')]"
+      :elementGuidelines="[document.querySelector('body')]"
       :preventClickEventOnDrag="false"
       :resizable="false"
       :rotatable="false"
@@ -61,18 +134,17 @@
 import {
   ComponentPublicInstance,
   computed,
-  defineProps,
   onMounted,
   provide,
   ref,
   unref,
   watch,
+  inject,
 } from 'vue'
 import Moveable from 'vue3-moveable'
-import { NvGroup } from '@packages/ui'
+import { NvCard, NvGroup, tokens } from '@packages/ui'
 import { RouteLocationRaw, useRouter } from 'vue-router'
 import NvHitbox from '@/modules/vue-hitboxes/NvHitbox.vue'
-import { useRouterViewPopover } from '@/features/router/hooks'
 import { useMessengerStore } from '@/teams/messenger/store'
 import NvMessengerInputBar from '@/teams/messenger/components/NvMessengerInputBar.vue'
 import NvMessengerAudioBar from '@/teams/messenger/components/NvMessengerAudioBar.vue'
@@ -83,6 +155,10 @@ import NvMessengerNavigationBar from '@/teams/messenger/components/NvMessengerNa
 import debounce from 'lodash/debounce'
 import { useElementSize, useEventListener, useWindowSize } from '@vueuse/core'
 import throttle from 'lodash/throttle'
+import { isGameOverlay } from '@/consts.ts'
+import { Tippy } from 'vue-tippy'
+
+const routerOverlay = inject('router-overlay')
 // import gsap from 'gsap'
 // const messengerWindowStore = useMessengerWindowStore()
 const messengerStore = useMessengerStore()
@@ -120,51 +196,54 @@ const props = defineProps({
 const messenger = ref()
 
 const moveable = ref()
-const moveableTarget = ref()
+const moveableTarget = ref<ComponentPublicInstance>()
 
-const doc = document
-const settingsPopover = useRouterViewPopover({
-  popoverTarget: messenger,
-  popoverOptions: {
-    trigger: 'manual',
-  },
-})
-
+const popover = ref()
+const { document } = window
 const router = useRouter()
 const navigateTo = (location: RouteLocationRaw) => {
   if (
-    unref(settingsPopover.popover.value?.state)?.isShown &&
+    unref(popover.value?.state)?.isShown &&
     typeof location === 'object' &&
     'name' in location &&
     router.currentRoute.value.name === location.name
   ) {
-    settingsPopover.popover.value?.hide()
+    popover.value?.hide()
     return
   }
   router.push(location)
-  settingsPopover.popover.value?.show()
+  popover.value?.show()
 }
-const popover = computed(() => settingsPopover.popover.value)
+
 const popoverState = computed<any>(() => popover.value?.state)
 const isViewShown = computed(() => popoverState.value?.isShown)
 provide('messenger', {
   navigateTo,
   isViewShown,
 })
-const { width: windowWidth, height: windowHeight } = useWindowSize()
-const viewport = computed(() => ({
-  width: Math.max(
-    windowWidth.value,
-    document.documentElement.clientWidth || 0,
-    window.innerWidth || 0,
-  ),
-  height: Math.max(
-    windowHeight.value,
-    document.documentElement.clientHeight || 0,
-    window.innerHeight || 0,
-  ),
-}))
 
+const { width: windowWidth, height: windowHeight } = useWindowSize()
+// TODO: refactor to use only app dimensions
+// Note: Game overlay can only be resized using body for now
+const { width: appWidth, height: appHeight } = useElementSize(
+  ref(document.getElementById('app')),
+)
+const viewport = computed(() => ({
+  width: isGameOverlay
+    ? appWidth.value
+    : Math.max(
+        windowWidth.value,
+        document.documentElement.clientWidth || 0,
+        window.innerWidth || 0,
+      ),
+  height: isGameOverlay
+    ? appHeight.value
+    : Math.max(
+        windowHeight.value,
+        document.documentElement.clientHeight || 0,
+        window.innerHeight || 0,
+      ),
+}))
 const savePosition = debounce((event: any) => {
   const { width, height, translate, transform } = event
 
@@ -181,8 +260,10 @@ const savePosition = debounce((event: any) => {
 const onDrag = (event: any) => {
   const { target, transform } = event
   target.style.transform = transform
-  savePosition(event)
-  settingsPopover.update()
+  if (!isGameOverlay) {
+    savePosition(event)
+  }
+  popover.value?.tippy?.popperInstance?.update()
 }
 // watch(() => messengerWindowStore.isShown, (isShown) => {
 //   console.log(gsap.getProperty(messenger.value, 'y'))
@@ -269,6 +350,30 @@ function convertScreenPosition() {
   }
 }
 
+let setGameOverlayMessengerPositionTimeout = null
+
+function setGameOverlayMessengerPosition() {
+  const currentWindowWidth = viewport.value.width
+  const currentWindowHeight = viewport.value.height
+  const newXValue = currentWindowWidth / 2 - moveableTargetWidth.value / 2
+  const newYValue = currentWindowHeight - moveableTargetHeight.value
+  if (setGameOverlayMessengerPositionTimeout)
+    clearTimeout(setGameOverlayMessengerPositionTimeout)
+  setGameOverlayMessengerPositionTimeout = setTimeout(() => {
+    if (moveable.value) {
+      moveable.value.request(
+        'draggable',
+        {
+          x: newXValue,
+          y: newYValue,
+        },
+        true,
+      )
+    }
+    setGameOverlayMessengerPositionTimeout = null
+  }, 1000)
+}
+
 useEventListener(
   'resize',
   throttle(() => {
@@ -276,12 +381,17 @@ useEventListener(
   }, 500),
 )
 
+watch([appWidth, appHeight], () => {
+  if (isGameOverlay) {
+    setGameOverlayMessengerPosition()
+  }
+})
+
 onMounted(() => {
   // gsap.set(messenger.value, {
   //   opacity: 0,
   // })
-  const moveableTargetEl = (moveableTarget.value as ComponentPublicInstance)
-    .$el as HTMLDivElement | null
+  const moveableTargetEl = moveableTarget.value?.$el as HTMLDivElement | null
   if (moveableTargetEl) {
     if (props.width) moveableTargetEl.style.width = `${props.width}px`
     if (props.minWidth) moveableTargetEl.style.minWidth = `${props.minWidth}px`

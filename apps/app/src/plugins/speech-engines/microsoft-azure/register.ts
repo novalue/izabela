@@ -1,19 +1,28 @@
-import { api } from '@/services'
+import { fetchApi } from '@/services'
 import { registerEngine } from '@/modules/speech-engine-manager'
 import type { SpeechEngine } from '@/modules/speech-engine-manager/types'
 import { useSpeechStore } from '@/features/speech/store'
 import NvVoiceSelect from './NvVoiceSelect.vue'
 import NvSettings from './NvSettings.vue'
 import { ENGINE_ID, ENGINE_NAME, getVoiceName } from './shared'
-import { getProperty, setProperty } from './store'
+import { getProperty, store } from './store'
 
-const getCredentials = () => ({
-  apiKey: getProperty('apiKey', true),
-  region: getProperty('region'),
-})
+const getCredentials = () => {
+  const speechStore = useSpeechStore()
+  return speechStore.hasUniversalApiCredentials &&
+    !getProperty('useLocalCredentials')
+    ? {}
+    : {
+        apiKey: getProperty('apiKey', true),
+        region: getProperty('region'),
+      }
+}
 
 const commands: SpeechEngine['commands'] = (voice) =>
-  (voice?.StyleList || []).map((style: string) => ({ name: style, value: style }))
+  (voice?.StyleList || []).map((style: string) => ({
+    name: style,
+    value: style,
+  }))
 
 const getSelectedVoice = () => getProperty('selectedVoice')
 registerEngine({
@@ -25,7 +34,10 @@ registerEngine({
   getCredentials,
   hasCredentials() {
     const speechStore = useSpeechStore()
-    return speechStore.hasUniversalApiCredentials || Object.values(getCredentials()).every(Boolean)
+    return (
+      speechStore.hasUniversalApiCredentials ||
+      Object.values(getCredentials()).every(Boolean)
+    )
   },
   getPayload({ text, intonation, hasPhonemes, translatedText, voice, dictionaryRules }) {
     let newText = translatedText || text;
@@ -55,20 +67,23 @@ registerEngine({
     return (voice || getSelectedVoice()).Locale
   },
   synthesizeSpeech({ credentials, payload }) {
-    return api(getProperty('useLocalCredentials') ? 'local' : 'remote').post<Blob>(
-      '/tts/microsoft-azure/synthesize-speech',
+    return fetchApi(
+      getProperty('useLocalCredentials') ? 'local' : 'remote',
+      `/tts/microsoft-azure/synthesize-speech`,
       {
-        credentials,
-        payload,
+        method: 'POST',
+        body: JSON.stringify({
+          credentials,
+          payload
+        }),
       },
-      { responseType: 'blob' },
     )
+  },
+  getUseCacheOnEveryRequest() {
+    return getProperty('useCacheOnEveryRequest')
   },
   voiceSelectComponent: NvVoiceSelect,
   settingsComponent: NvSettings,
   commands,
-  store: {
-    setProperty,
-    getProperty,
-  },
+  store,
 })

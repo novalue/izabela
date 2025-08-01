@@ -1,10 +1,10 @@
 import { registerEngine } from '@/modules/speech-engine-manager'
 import { DEFAULT_LANGUAGE_CODE } from '@/consts'
-import axios from 'axios'
+import { fetchApi } from '@/services'
 import NvVoiceSelect from './NvVoiceSelect.vue'
 import NvSettings from './NvSettings.vue'
 import { ENGINE_ID, ENGINE_NAME, getVoiceName } from './shared'
-import { getProperty, setProperty } from './store'
+import { getProperty, store } from './store'
 
 const getSelectedVoice = () => getProperty('selectedVoice')
 registerEngine({
@@ -26,7 +26,8 @@ registerEngine({
     return {
       text: translatedText || text,
       voice,
-      dictionaryRules
+      dictionaryRules,
+      additionalData: getProperty('additionalData'),
     }
   },
   getLanguageCode(voice) {
@@ -35,16 +36,22 @@ registerEngine({
   commands: (voice: any) => [],
   synthesizeSpeech({ payload, credentials }) {
     const endpoint = getProperty('endpoint')
-    return axios.post<Blob>(
+    return fetchApi(
+      'remote',
       `${endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint}/synthesize-speech`,
       {
-        credentials,
-        payload,
+        method: 'POST',
+        body: JSON.stringify({
+          credentials,
+          payload
+        }),
       },
-      { responseType: 'blob' },
     )
+  },
+  getUseCacheOnEveryRequest() {
+    return getProperty('useCacheOnEveryRequest')
   },
   voiceSelectComponent: NvVoiceSelect,
   settingsComponent: NvSettings,
-  store: { setProperty, getProperty },
+  store,
 })

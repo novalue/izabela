@@ -15,7 +15,8 @@
     <template #optionAfter="{ option, hover }">
       <span
         v-show="
-          (!option.children && hover) || favoriteVoiceIds.includes(option.id)
+          (!option.children && (hover || isGameOverlay)) ||
+          favoriteVoiceIds.includes(option.id)
         "
       >
         <NvButton
@@ -46,6 +47,7 @@ import { getVoiceCategory, getVoiceId, getVoiceName } from './shared'
 
 import { useListVoicesQuery } from './hooks'
 import { getProperty, setProperty } from './store'
+import { isGameOverlay } from '@/consts.ts'
 
 const { data, isFetching } = useListVoicesQuery()
 const voices = computed(() => sortBy(['Default', ...(data.value || [])]))

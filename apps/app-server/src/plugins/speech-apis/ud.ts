@@ -1,10 +1,8 @@
 import { RequestHandler } from 'express'
 import { handleError } from '../../utils/requests'
-import { v4 as uuid } from 'uuid'
-import fs from 'fs'
-import util from 'util'
-import path from 'path'
 import axios, { AxiosResponse } from 'axios'
+import { Readable } from 'stream'
+import { WordBoundary, SpeechSynthesizerAnswer } from '../../utils/speech-apis/types'
 
 const plugin: Izabela.Server.Plugin = ({ app, config }) => {
   const listVoicesHandler: RequestHandler = async (
@@ -34,11 +32,7 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
     },
     res,
   ) => {
-    const outputFile = path.join(config?.tempPath || '', uuid() + '.mp3')
     try {
-      fs.mkdirSync(path.parse(outputFile).dir, { recursive: true })
-      fs.writeFileSync(outputFile, '')
-
       const { data }: AxiosResponse<ArrayBuffer> = await axios({
         url: 'https://api.uberduck.ai/speak-synchronous',
         method: 'POST',
@@ -51,24 +45,25 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
         responseType: 'arraybuffer',
       })
 
-      const writeFile = util.promisify(fs.writeFile)
+      if (data.byteLength > 0) {
+        const answer: SpeechSynthesizerAnswer = { 
+          available : true, 
+          captions : [], 
+          audio : Buffer.from(data).toString('base64'), 
+          type : 'audio/mp3', 
+          note : '' 
+        }
 
-      await writeFile(outputFile, Buffer.from(data), 'base64')
-      const stat = fs.statSync(outputFile)
-      const total = stat.size
+        res.status(200).json(answer)
+      } else {
+        let errorResponse = {
+          error : 503,
+          message: "Could not synthesize the message."
+        }
 
-      res.writeHead(200, {
-        'Content-Length': total,
-        'Content-Type': 'audio/mp3',
-      })
-      const stream = fs.createReadStream(outputFile).pipe(res)
-      stream.on('finish', () => {
-        fs.unlinkSync(outputFile)
-      })
-    } catch (e: any) {
-      if (fs.existsSync(outputFile)) {
-        fs.unlinkSync(outputFile)
+        res.status(503).json(errorResponse);
       }
+    } catch (e: any) {
       handleError(res, 'Internal server error', e.message, 500)
     }
   }

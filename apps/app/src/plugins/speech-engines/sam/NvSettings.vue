@@ -1,10 +1,13 @@
 <template>
   <NvFormItem label="Voice">
-    <NvVoiceSelect />
+    <NvVoiceSelect
+      :modelValue="getProperty('selectedVoice')"
+      @update:modelValue="(value) => setProperty('selectedVoice', value)"
+    />
   </NvFormItem>
   <NvDivider direction="horizontal" />
   <NvAccessBlocker
-    :allowed="getProperty('selectedVoice').name === 'Custom'"
+    :allowed="getProperty('selectedVoice')?.name === 'Custom'"
     reason='Only available for the "Custom" voice'
   >
     <NvStack spacing="5">
@@ -15,16 +18,16 @@
             :min="0"
             class="!grow"
             v-bind="{
-              modelValue: getProperty('speech'),
-              'onUpdate:modelValue': (value) => setProperty('speech', value),
+              modelValue: getProperty('pitch'),
+              'onUpdate:modelValue': (value) => setProperty('pitch', value),
             }"
           />
           <NvNumberInput
             :max="255"
             :min="0"
             v-bind="{
-              modelValue: getProperty('speech'),
-              'onUpdate:modelValue': (value) => setProperty('speech', value),
+              modelValue: getProperty('pitch'),
+              'onUpdate:modelValue': (value) => setProperty('pitch', value),
             }"
           />
         </NvGroup>
@@ -93,6 +96,20 @@
       </NvFormItem>
     </NvStack>
   </NvAccessBlocker>
+  <template v-if="!form">
+    <NvDivider direction="horizontal" />
+    <NvGroup :spacing="5" justify="apart" no-wrap>
+      <NvStack>
+        <NvText type="label">Prefer cache on every message</NvText>
+      </NvStack>
+      <NvSwitch
+        :modelValue="getProperty('useCacheOnEveryRequest')"
+        @update:modelValue="
+          (value) => setProperty('useCacheOnEveryRequest', value)
+        "
+      />
+    </NvGroup>
+  </template>
 </template>
 <script lang="ts" setup>
 import {
@@ -103,7 +120,14 @@ import {
   NvNumberInput,
   NvRangeInput,
   NvStack,
+  NvSwitch,
+  NvText,
 } from '@packages/ui'
 import NvVoiceSelect from './NvVoiceSelect'
-import { getProperty, setProperty } from './store'
+import { store } from './store'
+
+const props = defineProps({
+  form: Object,
+})
+const { getProperty, setProperty } = store.useStoreOrForm(props.form)
 </script>

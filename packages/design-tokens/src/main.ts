@@ -30,7 +30,7 @@ export const tokens = {
   },
   colors: {
     white: '#ffffff',
-    black: '#0E0E2C',
+    black: '#0E0E1C',
     gray: {
       100: '#0E0E2C',
       90: '#2B2B2C',

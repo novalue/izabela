@@ -10,7 +10,7 @@
     @select="onAutocompleteSelect"
   >
     <template #reference>
-      <div>
+      <div ref="inputWrapper">
         <NvInput
           ref="inputRef"
           :modelValue="props.modelValue"
@@ -53,14 +53,7 @@ import {
   NvOption,
   NvText,
 } from '@packages/ui'
-import {
-  computed,
-  defineEmits,
-  defineExpose,
-  defineProps,
-  ref,
-  watch,
-} from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getEngineById } from '@/modules/speech-engine-manager'
 import { useFuse, UseFuseOptions } from '@vueuse/integrations/useFuse'
 import orderBy from 'lodash/orderBy'
@@ -68,6 +61,7 @@ import throttle from 'lodash/throttle'
 import { useMessagesStore } from '@/features/messages/store'
 import { onKeyStroke } from '@vueuse/core'
 import { useSpeechStore } from '@/features/speech/store'
+import { useFocusTrap } from '@vueuse/integrations/useFocusTrap'
 
 const props = defineProps({
   engine: {
@@ -236,5 +230,15 @@ const onInputBlur = () => {
 const input = computed(() => inputRef.value?.input)
 defineExpose({
   input,
+})
+
+const inputWrapper = ref()
+const { activate, deactivate } = useFocusTrap(inputWrapper)
+watch(isAutocompleteVisible, (value) => {
+  if (value) {
+    activate()
+  } else {
+    deactivate()
+  }
 })
 </script>

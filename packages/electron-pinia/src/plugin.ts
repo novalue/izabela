@@ -2,9 +2,11 @@ import { PiniaPlugin } from 'pinia'
 import { persistStatePlugin } from './persist-state-plugin'
 import { shareStatePlugin } from './share-state-plugin'
 import { PluginCustomProperties, StoreOptions } from './types'
-import { ref } from 'vue'
 import 'pinia'
 import { Deferred } from '@packages/toolbox'
+
+export const storesStates: PluginCustomProperties['storesStates'] = {}
+export const stores = new Map()
 
 export const plugin = (() => {
   const plugin: () => PiniaPlugin =
@@ -13,9 +15,11 @@ export const plugin = (() => {
       const options = storeOptions as StoreOptions
       const { promise: whenAllReady, resolve, reject } = Deferred<boolean>()
       const state: PluginCustomProperties = {
-        $isReady: ref(false),
+        storesStates,
         $whenReady: () => whenAllReady,
       }
+      stores.set(store.$id, store)
+      storesStates[store.$id] = state
       const isPersisted = options.electron?.persisted
       const isShared = options.electron?.shared
       ;(isPersisted
@@ -28,7 +32,6 @@ export const plugin = (() => {
             : Promise.resolve(true),
         )
         .then(() => {
-          state.$isReady.value = true
           resolve(true)
         })
         .catch(reject)

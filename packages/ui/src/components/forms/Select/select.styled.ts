@@ -13,7 +13,7 @@ import {
   iconStyleBySize,
 } from '@/utils/css-in-js'
 
-const { fontSize, spacing, borderWidth, colors, transition } = tokens
+const { fontSize, spacing, borderWidth, transition } = tokens
 const iconStyle = ({ size }: SelectProps) => {
   const position = iconStyleBySize(size)
   const styles: Record<Size, CSSObject> = {
@@ -81,18 +81,20 @@ export const StSelect = styled('div', selectProps)`
   display: inline-flex;
   align-items: center;
   border-width: ${() => rem(borderWidth.DEFAULT)};
-  border-color: ${() => colors.gray['20']};
+  border-color: ${({ theme }) => theme.select.borderColor};
   transition: ${() => transition.DEFAULT};
+  color: ${({ theme }) => theme.select.color};
+  background: ${({ theme }) => theme.select.backgroundColor};
 
   ${(props) => styleBySize(props)}
   &:hover {
-    border-color: ${() => colors.gray['30']};
+    border-color: ${({ theme }) => theme.select.hover.borderColor};
   }
 
-  ${({ isFocused }) =>
+  ${({ theme, isFocused }) =>
     isFocused && {
-      boxShadow: `0 0 0 ${rem(borderWidth.lg)} ${colors.gray['10']}`,
-      borderColor: colors.gray['30'],
+      boxShadow: `0 0 0 ${rem(borderWidth.lg)} ${theme.select.focus.boxShadow}`,
+      borderColor: theme.select.focus.borderColor,
     }}
 `
 
@@ -117,8 +119,11 @@ export const StSelectInput = styled('input', selectProps)`
   width: 100%;
   ${inputStyleBySize};
 
+  color: ${({ theme }) => theme.select.color};
+  background: ${({ theme }) => theme.select.backgroundColor};
+
   &::placeholder {
-    color: ${() => colors.gray['40']};
+    color: ${({ theme }) => theme.select.placeholder.color};
     font-weight: 300;
     font-size: inherit;
     letter-spacing: inherit;
@@ -149,11 +154,12 @@ export const StSelectOption = styled('div', {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+
   & .option__content {
     position: relative;
     z-index: 0;
-    max-width: 100%;
-    ${({ readonly }) =>
+    min-width: 0;
+    ${({ theme, readonly }) =>
       readonly &&
       `
     &::before {
@@ -162,18 +168,24 @@ export const StSelectOption = styled('div', {
         position: absolute;
         display: inline-flex;
         inset: ${rem(-spacing['2'])};
-        background-color: ${colors.white};
+        background-color: ${theme.select.option.backgroundColor};
     }
     `}
   }
+
   & .option__after {
     flex-shrink: 0;
+
+    & > * {
+      margin-left: ${() => rem(spacing['3'])};
+    }
   }
-  ${({ disabled, selected, active, readonly }) =>
+
+  ${({ theme, disabled, selected, active, readonly }) =>
     readonly
       ? ` 
           cursor: auto;
-            color: ${colors.gray['40']} !important;
+            color: ${theme.select.option.readonly.color} !important;
             position: relative;
             z-index: 0;
             &::before {
@@ -182,7 +194,7 @@ export const StSelectOption = styled('div', {
                 top: 50%;
                 left: 0;
                 transform: translateY(-50%);
-                background-color: ${colors.gray['20']};
+                background-color: ${theme.select.option.readonly.borderColor};
                 height: ${rem(1)};
                 width: 100%;
                 z-index: -1;
@@ -192,24 +204,24 @@ export const StSelectOption = styled('div', {
         ? `
           user-select: none;
           pointer-events: none;
-          color: ${colors.gray['40']} !important;
+          color: ${theme.select.option.disabled.backgroundColor} !important;
       `
         : `
         &:hover {
-            background-color: ${colors.gray['10']} !important;
+            background-color: ${theme.select.option.hover.backgroundColor} !important;
         }
         ${
           selected
             ? `
             font-weight: 700;
-            background-color: ${colors.gray['10']} !important;
+            background-color: ${theme.select.option.selected.backgroundColor} !important;
           `
             : ''
         }
         ${
           active
             ? `
-            background-color: ${colors.gray['20']} !important;
+            background-color: ${theme.select.option.active.backgroundColor} !important;
           `
             : ''
         }

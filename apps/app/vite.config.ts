@@ -44,9 +44,10 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         ...rollupOptions,
         input: {
-          messenger: './src/teams/messenger/index.html',
+          'messenger': './src/teams/messenger/index.html',
           'speech-worker': './src/teams/speech-worker/index.html',
-          overlay: './src/teams/overlay/index.html',
+          'overlay': './src/teams/overlay/index.html',
+          'main': './src/index.html',
         },
       },
     },
@@ -59,6 +60,7 @@ export default defineConfig(({ mode }) => {
           vite: {
             resolve,
             build: {
+              emptyOutDir: mode === 'production',
               rollupOptions,
             },
             plugins: [...plugins()],

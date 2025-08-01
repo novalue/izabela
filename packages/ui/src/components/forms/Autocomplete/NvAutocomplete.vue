@@ -27,17 +27,24 @@
         <slot name="reference" />
       </Popover.Trigger>
       <Teleport :to="portalTarget" defer>
+        <div
+          v-show="props.visible"
+          class="fixed inset-0 pointer-events-auto"
+          :style="{ zIndex: 9999 }"
+          @click.stop.prevent
+          @mouseup.stop.prevent
+          @mousedown.stop.prevent
+        />
         <Popover.Positioner ref="positioner" :style="{ zIndex: 9999 }">
           <Popover.Content :hidden="false" asChild>
             <div
               @click.stop.prevent
               @mouseup.stop.prevent
-              @mousedown.prevent.stop
+              @mousedown.stop.prevent
             >
               <Transition>
                 <StAutocomplete
                   v-if="props.visible"
-                  v-loading="loading"
                   class="autocomplete"
                   v-bind="{ ...props, width: autocompleteWidth }"
                 >
@@ -98,7 +105,7 @@
 </template>
 <script lang="ts" setup>
 import { Popover } from '@ark-ui/vue'
-import { computed, defineProps, ref, watch } from 'vue'
+import { computed, defineProps, inject, ref, unref, watch } from 'vue'
 import { StAutocomplete } from './autocomplete.styled'
 import { defaultWidth, props as propsDefinition } from './autocomplete.shared'
 import { tokens } from '@/styles/tokens'
@@ -108,7 +115,8 @@ import NvVirtualList from '@/components/miscellaneous/VirtualList/NvVirtualList.
 import NvVirtualListContainer from '@/components/miscellaneous/VirtualList/NvVirtualListContainer.vue'
 import get from 'lodash/get'
 import { Virtualizer } from '@tanstack/virtual-core'
-import { inject } from 'vue'
+import { getElement } from '@/utils/vue'
+import { PORTAL_TARGET } from '@/consts'
 
 const props = defineProps(propsDefinition)
 const list = ref<
@@ -216,6 +224,6 @@ const onVisible = () => {
   selection.value = props.autoScrollIndex
   loading.value = false
 }
-
-const portalTarget = inject('portal-target') || 'body'
+const injectedPortalTarget = inject(PORTAL_TARGET)
+const portalTarget = computed(() => getElement(injectedPortalTarget) || 'body')
 </script>

@@ -4,7 +4,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { SpeechEngine } from '@/modules/speech-engine-manager/types'
 import { Key } from '@/types/keybinds'
-import { ENGINE_ID } from '@/plugins/speech-engines/say/shared'
+import { ENGINE_ID as defaultSpeechEngineId } from '@/plugins/speech-engines/say/shared'
+import { ENGINE_ID as defaultTranslationEngineId } from '@/plugins/translation-engines/google-translate/shared'
+import { ENGINE_ID as defaultSpeechRecognitionEngineId } from '@/plugins/speech-recognition-engines/google-cloud/shared'
+import { useMessengerStateStore } from '@/teams/messenger/store'
 
 export const useSettingsStore = defineStore(
   'settings',
@@ -21,14 +24,22 @@ export const useSettingsStore = defineStore(
           : 'latest'
 
     const toggleDarkMode = ref(false)
+    const enableAutoUpdate = ref(true)
+    const enableOverlayWindow = ref(false)
     const preferredSavDir = ref<null | string>(null)
     const playSpeechOnDefaultPlaybackDevice = ref(true)
     const voiceLocale = ref<string>('en-US')
     const audioOutputs = ref<MediaDeviceInfo['label'][]>([])
     const audioInput = ref<MediaDeviceInfo['label']>('default')
-    const selectedSpeechEngine = ref<SpeechEngine['id']>(ENGINE_ID)
+    const selectedSpeechEngine = ref<SpeechEngine['id']>(defaultSpeechEngineId)
+    const selectedTranslationEngine = ref(defaultTranslationEngineId)
+    const selectedSpeechRecognitionEngine = ref(
+      defaultSpeechRecognitionEngineId,
+    )
+    const theme = ref<'light' | 'dark'>('light')
     const updateChannel = ref(channel)
     const launchOnStartup = ref(true)
+    const runAsAdmin = ref(false)
     const debugMode = ref(import.meta.env.MODE === 'development')
     const messageMode = ref<'sentence' | 'word'>('sentence')
     const display = ref<Electron.Display['id'] | null>(null)
@@ -41,19 +52,10 @@ export const useSettingsStore = defineStore(
     const soxDevice = ref(0)
     const speechDetectionPolling = ref(40)
     const enableSTTTS = ref(false)
-    const textInputLanguage = ref(null)
-    const textOutputLanguage = ref(null)
     const speechInputLanguage = ref('en-US')
     const enableTranslation = ref(false)
     const speechProfanityFilter = ref(true)
     const speechRecognitionStrategy = ref<'continuous' | 'ptr'>('ptr')
-    const textTranslationStrategy = ref<'cloud-translation' | 'custom'>(
-      'cloud-translation',
-    )
-    const customTextTranslationEndpoint = ref('')
-    const customTextTranslationApiKey = ref('')
-    const customTextTranslationFrom = ref('')
-    const customTextTranslationTo = ref('')
     // const enableBackgroundDim = ref(true)
     const backgroundDimOpacity = ref(50)
     const keybindings = ref<Record<string, Key[]>>({
@@ -202,7 +204,26 @@ export const useSettingsStore = defineStore(
         },
       ],
     })
+
+    const messengerStateStore = useMessengerStateStore()
+
+    const enableRunAsAdmin = () => {
+      runAsAdmin.value = true
+      messengerStateStore.$patch({
+        markForRestart: true,
+      })
+    }
+
+    const disableRunAsAdmin = () => {
+      runAsAdmin.value = false
+    }
+
     return {
+      theme,
+      enableAutoUpdate,
+      enableRunAsAdmin,
+      disableRunAsAdmin,
+      enableOverlayWindow,
       // enableBackgroundDim,
       toggleDarkMode,
       backgroundDimOpacity,
@@ -211,9 +232,12 @@ export const useSettingsStore = defineStore(
       voiceLocale,
       audioOutputs,
       audioInput,
+      selectedTranslationEngine,
       selectedSpeechEngine,
+      selectedSpeechRecognitionEngine,
       updateChannel,
       launchOnStartup,
+      runAsAdmin,
       debugMode,
       messageMode,
       display,
@@ -226,15 +250,8 @@ export const useSettingsStore = defineStore(
       enableSTTTS,
       speechRecognitionStrategy,
       soxDevice,
-      textInputLanguage,
-      textOutputLanguage,
       speechInputLanguage,
       enableTranslation,
-      textTranslationStrategy,
-      customTextTranslationEndpoint,
-      customTextTranslationApiKey,
-      customTextTranslationFrom,
-      customTextTranslationTo,
       speechProfanityFilter,
       soxPreRecordingChunks,
       soxPostRecordingChunks,

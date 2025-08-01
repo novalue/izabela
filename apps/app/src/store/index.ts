@@ -1,49 +1,89 @@
+import { useLocalStorage } from '@vueuse/core'
 import { decrypt, encrypt } from '@/utils/security'
 import { createPinia, defineStore } from 'pinia'
-import { createApp, h, onScopeDispose, ref, watch } from 'vue'
-import { electronPiniaPlugin } from '@packages/electron-pinia/renderer'
+import { createApp, h, ref } from 'vue'
+import { electronPiniaPlugin } from '@packages/electron-pinia'
+import pick  from 'lodash/pick'
 
 export const pinia = createPinia().use(electronPiniaPlugin())
 /* ensures pinia is always available */
 createApp(h({})).use(pinia)
 
-function useLocalStorage<T>(key: string, defaultValue: T) {
-  const val = ref(defaultValue);
-
-  const storageVal = window.localStorage.getItem(key);
-  if (storageVal) {
-    val.value = JSON.parse(storageVal);
-  }
-
-  function handleStorageEvent(event: StorageEvent) {
-    if (event.key === key) {
-      val.value = JSON.parse(event.newValue || "null");
-    }
-  }
-
-  window.addEventListener("storage", handleStorageEvent);
-
-  onScopeDispose(() => window.removeEventListener("storage", handleStorageEvent));
-
-  watch(val, (newValue) => window.localStorage.setItem(key, JSON.stringify(newValue)), { deep: true});
-
-  return val;
-}
-
 export const definePluginStore = <S extends Record<any, any>>(
   id: string,
   state: S,
+  exposedProperties: (keyof S)[] = Object.keys(state),
 ) => {
-  const usePluginLocalStore = useLocalStorage<Record<any, any>>(`plugin-${id}`, state);
+  const usePluginStore = defineStore(
+    `plugin-${id}`,
+    () => {
+      const pluginState = ref<Record<any, any>>(state)
+      return {
+        pluginState,
+      }
+    },
+    { electron: { shared: true, persisted: true } },
+  )
+
+  const getEncryptFunction = (encryptValue = false) =>
+    encryptValue ? encrypt : (v: any) => v
+  const getDecryptFunction = (decryptValue = false) =>
+    decryptValue ? decrypt : (v: any) => v
+
+  function getProperty(property: keyof S, decryptValue = false) {
+    const pluginStore = usePluginStore()
+    const fn = getDecryptFunction(decryptValue)
+    return fn(pluginStore.$state.pluginState[property])
+  }
+
+  function setProperty(property: keyof S, value: any, encryptValue = false) {
+    const pluginStore = usePluginStore()
+    const fn = getEncryptFunction(encryptValue)
+    pluginStore.$patch({ pluginState: { [property]: fn(value) } })
+  }
+  
+  function getPropertyPath(property: keyof S) {
+    const pluginStore = usePluginStore()
+    return [pluginStore.$id, 'pluginState', property].join('.')
+  }
+
 
   return {
-    setProperty(property: keyof S, value: any, encryptValue = false) {
-      const fn = encryptValue ? encrypt : (v: any) => v;
-      usePluginLocalStore.value[property] = fn(value);
+    setProperty,
+    getProperty,
+    getPropertyPath,
+    getId() {
+      const pluginStore = usePluginStore()
+      return pluginStore.$id
     },
-    getProperty(property: keyof S, decryptValue = false) {
-      const fn = decryptValue ? decrypt : (v: any) => v;
-      return fn(usePluginLocalStore.value[property]);
+    useStoreOrForm(form?: any) {
+      if (form)
+        return {
+          getProperty(...args: Parameters<typeof getProperty>) {
+            const fn = getDecryptFunction(args[1])
+            return fn(form[getPropertyPath(args[0])])
+          },
+          setProperty(...args: Parameters<typeof setProperty>) {
+            const fn = getEncryptFunction(args[2])
+            form[getPropertyPath(args[0])] = fn(args[1])
+          },
+          getStoreProperty: getProperty,
+          setStoreProperty: setProperty,
+        }
+      return {
+        getProperty,
+        setProperty,
+        getStoreProperty: getProperty,
+        setStoreProperty: setProperty,
+      }
+    },
+    exposedProperties,
+    getExposedProperties() {
+      const pluginStore = usePluginStore()
+      return pick(pluginStore.$state.pluginState, exposedProperties)
+    },
+    getState() {
+      return usePluginStore()
     },
   }
 }
