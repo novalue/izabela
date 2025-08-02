@@ -7,21 +7,6 @@ import { createEngineManager } from '@/modules/engine-manager'
 const SpeechEngineManager = () => {
   const engineManager = createEngineManager<SpeechEngine>()
 
-  const commands: SpeechEngine['commands'] = (voice) =>
-    (voice.StyleList || []).map((style: string) => ({ name: style, value: style }))
-
-  const checkIntonation = (options: any, speechEngine: SpeechEngine) => {
-    const voice = options.voice || speechEngine.getSelectedVoice()
-    const commandString = options.text.split(' ')[0] || ''
-    if (commandString.startsWith('/')) {
-      const command = commands(voice).find(({ name }) => commandString.startsWith(`/${name}`))
-      options.text = options.text.replace(commandString, '')
-      if (command) {
-        options.intonation = command.value
-      }
-    }
-  }
-
   const checkPhonemes = (options: any, speechEngine: SpeechEngine) =>
   {
     if (speechEngine.id == 'matts') {
@@ -34,7 +19,6 @@ const SpeechEngineManager = () => {
     return {
       ...speechEngine,
       getPayload: (options) => {
-        checkIntonation(options, speechEngine);
         checkPhonemes(options, speechEngine);
 
         options.text = options.text.replace(/^(\s*[>]\s*(\p{L}+\s*\(\w+\)|\w+)\s*):(.*)/gui, '$2 says:$3')

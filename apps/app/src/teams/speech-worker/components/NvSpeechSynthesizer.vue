@@ -69,8 +69,8 @@ const onMessage = async (payload: string | IzabelaMessage) => {
       engine: speechEngine.id,
       credentials: speechEngine.getCredentials(),
       payload: speechEngine.getPayload({
-        text: cleanMessage,
-        intonation: null,
+        text: (settingsStore.enableTranslation ? (translatedMessage ? translatedMessage : cleanMessage) : cleanMessage),
+        intonation: command,
         hasPhonemes: null,
         voice,
         translatedText: translatedMessage,
