@@ -72,11 +72,12 @@ import { computed, reactive, ref, watch } from 'vue'
 import { getEngineById } from '@/modules/speech-engine-manager'
 import NvSpeechEngineSelect from '@/features/speech/components/inputs/NvSpeechEngineSelect.vue'
 import { useSettingsStore } from '@/features/settings/store'
+import { useSpeechStore } from '@/features/speech/store'
 import NvKeybinding from '@/features/app/components/inputs/NvKeybinding.vue'
 import { Key } from '@/types/keybinds'
 import { usePlayMessage } from '@/features/messages/hooks'
 import NvSpeechEngineInput from '@/features/speech/components/inputs/NvSpeechEngineInput.vue'
-import { getCleanMessage, getMessageCommand } from '@/modules/izabela/utils'
+import { interpretMessage } from '@/modules/izabela/utils'
 import hash from 'object-hash'
 import { NvBar, NvBarWrapper } from '@/components'
 
@@ -87,6 +88,7 @@ const props = defineProps({
   },
 })
 const { ElectronFilesystem } = window
+const speechStore = useSpeechStore()
 const messagesStore = useMessagesStore()
 const settingsStore = useSettingsStore()
 const { shortcutMessages } = storeToRefs(messagesStore)
@@ -127,22 +129,30 @@ watch(
 watch(
   () => data,
   () => {
-    const voice = data.selectedVoice[data.engine]
-    const engineCommands = engine.value?.commands?.(voice) || []
-    const cleanMessage = getCleanMessage(data.originalMessage, engineCommands)
-    messagesStore.updateShortcutMessage(props.id, {
-      ...message.value,
-      id: message.value?.id || props.id,
-      engine: data.engine,
-      voice,
-      shortcut: data.shortcut,
-      message: cleanMessage,
-      translatedMessage: null,
-      translatedFrom: null,
-      translatedTo: null,
-      originalMessage: data.originalMessage,
-      command: getMessageCommand(data.originalMessage),
-    })
+    const messageData = interpretMessage(data.originalMessage, speechStore.engineCommands, speechStore.customCommands)
+    if (messageData.available) {
+      let customCommand = null
+      if (messageData.isCustom) {
+        customCommand = speechStore.customCommands.find(
+          (e) => e.value === messageData.command
+        )
+      }
+
+      messagesStore.updateShortcutMessage(props.id, {
+        ...message.value,
+        id: message.value?.id || props.id,
+        engine: data.engine,
+        voice: data.selectedVoice[data.engine],
+        shortcut: data.shortcut,
+        message: messageData.text,
+        translatedMessage: null,
+        translatedFrom: null,
+        translatedTo: null,
+        originalMessage: data.originalMessage,
+        command: messageData.command,
+        customCommand: customCommand
+      })
+    }
   },
   { deep: true },
 )

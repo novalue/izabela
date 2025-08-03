@@ -13,11 +13,7 @@ import {
 import { useSpeechStore } from '@/features/speech/store'
 import speechEngineManager from '@/modules/speech-engine-manager'
 import translationEngineManager from '@/modules/translation-engine-manager'
-import {
-  getCleanMessage,
-  getMessageCommand,
-  removeCommandFromMessage,
-} from '@/modules/izabela/utils'
+import { interpretMessage } from '@/modules/izabela/utils'
 import { useSettingsStore } from '@/features/settings/store'
 import { useDictionaryStore } from '@/features/dictionary/store'
 import { io } from 'socket.io-client'
@@ -39,69 +35,56 @@ const onMessage = async (payload: string | IzabelaMessage) => {
       settingsStore.selectedTranslationEngine,
     )
     if (!speechEngine) return
-    const voice = speechEngine.getSelectedVoice()
-    const engineCommands = speechEngine.commands?.(voice) || []
-    const command = getMessageCommand(payload)
-    const customCommand = speechStore.customCommands.find(
-      (e) => e.value === command,
-    )
-    const cleanMessage = getCleanMessage(payload, engineCommands)
-    const voiceLanguageCode = speechEngine.getLanguageCode(voice)
-    const translationOptions =
-      translationEngine?.getTranslationOptions(voiceLanguageCode)
-    const translatedMessage =
-      settingsStore.enableTranslation && translationEngine
-        ? await translationEngine.translate(
-            removeCommandFromMessage(payload),
-            voiceLanguageCode,
-          )
-        : null
-    console.log('Translated message:', translatedMessage)
 
-    message = {
-      id: uuid(payload, NIL),
-      voice,
-      message: cleanMessage,
-      originalMessage: payload,
-      translatedMessage,
-      translatedFrom: translationOptions?.translateFrom || null,
-      translatedTo: translationOptions?.translateTo || null,
-      engine: speechEngine.id,
-      credentials: speechEngine.getCredentials(),
-      payload: speechEngine.getPayload({
-        text: (settingsStore.enableTranslation ? (translatedMessage ? translatedMessage : cleanMessage) : cleanMessage),
-        intonation: command,
-        hasPhonemes: null,
+    const voice = speechEngine.getSelectedVoice()
+    const messageData = interpretMessage(payload, speechStore.engineCommands, speechStore.customCommands)
+    if (messageData.available) {
+      const voiceLanguageCode = speechEngine.getLanguageCode(voice)
+      const translationOptions = translationEngine?.getTranslationOptions(voiceLanguageCode)
+      const translatedMessage = settingsStore.enableTranslation && translationEngine ? 
+        await translationEngine.translate(messageData.text, voiceLanguageCode) : null
+
+      console.log('Translated message:', translatedMessage)
+
+      message = {
+        id: uuid(payload, NIL),
         voice,
-        translatedText: translatedMessage,
-        dictionaryRules: []
-      }),
-      command,
-      customCommand,
+        message: messageData.text,
+        originalMessage: payload,
+        translatedMessage,
+        translatedFrom: translationOptions?.translateFrom || null,
+        translatedTo: translationOptions?.translateTo || null,
+        engine: speechEngine.id,
+        credentials: speechEngine.getCredentials(),
+        payload: speechEngine.getPayload({
+          text: (settingsStore.enableTranslation ? (translatedMessage ? translatedMessage : messageData.text) : messageData.text),
+          intonation: messageData.command,
+          hasPhonemes: null,
+          voice,
+          translatedText: translatedMessage,
+          dictionaryRules: []
+        }),
+        command: messageData.command,
+        customCommand: speechStore.customCommands.find((e) => e.value === messageData.command),
+      }
     }
   } else {
     const engine = speechEngineManager.getEngineById(payload.engine)
     if (!engine) return
-    const { voice } = payload
-    const engineCommands = engine.commands?.(voice) || []
-    const cleanMessage = getCleanMessage(payload.message, engineCommands)
-    const command = payload.command
-    const customCommand = speechStore.customCommands.find(
-      (e) => e.value === payload.command,
-    )
+
     message = {
       ...payload,
       credentials: engine.getCredentials(),
       payload: engine.getPayload({
-        text: cleanMessage,
-        intonation: null,
+        text: payload.message,
+        intonation: payload.command,
         hasPhonemes: null,
-        voice,
+        voice: payload.voice,
         translatedText: payload.translatedMessage,
         dictionaryRules: []
       }),
-      command,
-      customCommand,
+      command: payload.command,
+      customCommand: payload.customCommand
     }
   }
   if (message) izabela.say(message)

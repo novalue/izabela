@@ -1,20 +1,35 @@
 import { SpeechCommand } from '@/features/speech/types'
 
-export const getMessageCommand = (message: string) => {
+const getMessageCommand = (message: string) => {
   const command = message.split(' ')[0]
   if (command.startsWith('/')) return command.replace('/', '')
   return null
 }
 
-export const removeCommandFromMessage = (message: string) => {
-  const command = getMessageCommand(message)
-  if (command) return message.replace(`/${command}`, '').trim()
-  return message
-}
+export const interpretMessage = (message: string, engineCommands: SpeechCommand[], customCommands: SpeechCommand[]) => {
+  const result = {
+    available: true,
+    text: '',
+    command: '',
+    isCustom: false
+  }
 
-export const getCleanMessage = (message: string, engineCommands: SpeechCommand[]) => {
   const command = getMessageCommand(message)
-  if (command && !engineCommands.find((c) => c.value === command))
-    return message.replace(`/${command}`, '').trim()
-  return message
+  if (command) {
+    if (engineCommands.find((refCommand) => refCommand.value === command)) {
+      result.command = command
+    } else if (customCommands.find((refCommand) => refCommand.value === command)) {
+      result.command = command
+      result.isCustom = true
+    } else {
+      result.available = false
+    }
+
+    // sizeof ('/') + sizeof (' ') = 2
+    result.text = message.substring(command.length + 2)
+  } else {
+    result.text = message
+  }
+
+  return result
 }

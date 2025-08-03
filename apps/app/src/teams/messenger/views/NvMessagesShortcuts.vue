@@ -39,5 +39,10 @@ const addShortcut = () =>
     voice: speechStore.currentSpeechEngine.getSelectedVoice(),
     message: '',
     shortcut: [],
+    originalMessage: '',
+    translatedMessage: null,
+    translatedFrom: null,
+    translatedTo: null,
+    command: null
   })
 </script>
