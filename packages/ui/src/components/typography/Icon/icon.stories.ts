@@ -15,7 +15,7 @@ export default {
     },
     name: {
       defaultValue: 'github',
-      options: Object.values(Icons).map(({ name }) => name.replace('nv-', '')),
+      options: Object.values(Icons).map(({ name }) => name?.replace('nv-', '')),
       control: 'select',
     },
   },

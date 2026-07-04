@@ -17,5 +17,5 @@
   },
   "sideEffects": false,
   "type": "module",
-  "types": "./dist/main.d.ts"
+  "types": "./dist/packages/icons/src/main.d.ts"
 }

@@ -96,10 +96,15 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
       }
 
       if (audioRes) {
+        let audioRawBufferData: Uint8Array = new Uint8Array();
+        if (audioRes.AudioStream) {
+          audioRawBufferData = await audioRes.AudioStream.transformToByteArray();
+        }
+
         const answer: SpeechSynthesizerAnswer = { 
           available : true, 
           captions : [], 
-          audio : Buffer.from(audioRes.AudioStream as Blob).toString('base64'), 
+          audio : Buffer.from(audioRawBufferData).toString('base64'), 
           type : 'audio/mp3', 
           note : '' 
         }

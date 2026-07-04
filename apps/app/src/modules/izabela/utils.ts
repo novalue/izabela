@@ -6,8 +6,20 @@ const getMessageCommand = (message: string) => {
   return null
 }
 
-export const interpretMessage = (message: string, engineCommands: SpeechCommand[], customCommands: SpeechCommand[]) => {
-  const result = {
+export type InputType = {
+  type: 'IzabelaInput' | 'IzabelaMessage',
+  input: any
+}
+
+export type IzabelaInput = {
+  available: boolean,
+  text: string,
+  command: string,
+  isCustom: boolean
+}
+
+export const interpretMessage = (message: string, engineCommands: SpeechCommand[], customCommands: SpeechCommand[]) : IzabelaInput => {
+  const result : IzabelaInput = {
     available: true,
     text: '',
     command: '',

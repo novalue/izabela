@@ -13,6 +13,7 @@ import {
 import { useSpeechStore } from '@/features/speech/store'
 import speechEngineManager from '@/modules/speech-engine-manager'
 import translationEngineManager from '@/modules/translation-engine-manager'
+import type { InputType, IzabelaInput } from '@/modules/izabela/utils'
 import { interpretMessage } from '@/modules/izabela/utils'
 import { useSettingsStore } from '@/features/settings/store'
 import { useDictionaryStore } from '@/features/dictionary/store'
@@ -26,66 +27,72 @@ const { addDefinition, removeDefinition, updateDefinition, findDefinition } = di
 
 const socket = io(`ws://localhost:${import.meta.env.VITE_SERVER_WS_PORT}`, {})
 
-const onMessage = async (payload: string | IzabelaMessage) => {
-  console.log('Saying something:', payload)
+const onMessage = async (inputData: InputType) => {
+  console.log('Saying something:', inputData)
+
   let message: IzabelaMessagePayload | null = null
-  if (typeof payload === 'string') {
+  if (inputData.type === 'IzabelaInput') {
+    const inputMessage: IzabelaInput = inputData.input
+
     const speechEngine = speechStore.currentSpeechEngine
     const translationEngine = translationEngineManager.getEngineById(
       settingsStore.selectedTranslationEngine,
     )
     if (!speechEngine) return
 
-    const voice = speechEngine.getSelectedVoice()
-    const messageData = interpretMessage(payload, speechStore.engineCommands, speechStore.customCommands)
-    if (messageData.available) {
+    if (inputMessage.available) {
+      const voice = speechEngine.getSelectedVoice()
       const voiceLanguageCode = speechEngine.getLanguageCode(voice)
       const translationOptions = translationEngine?.getTranslationOptions(voiceLanguageCode)
       const translatedMessage = settingsStore.enableTranslation && translationEngine ? 
-        await translationEngine.translate(messageData.text, voiceLanguageCode) : null
+        await translationEngine.translate(inputMessage.text, voiceLanguageCode) : null
 
       console.log('Translated message:', translatedMessage)
 
       message = {
-        id: uuid(payload, NIL),
+        id: uuid(inputMessage.text, NIL),
         voice,
-        message: messageData.text,
-        originalMessage: payload,
+        message: inputMessage.text,
+        originalMessage: inputMessage.text,
         translatedMessage,
         translatedFrom: translationOptions?.translateFrom || null,
         translatedTo: translationOptions?.translateTo || null,
         engine: speechEngine.id,
         credentials: speechEngine.getCredentials(),
         payload: speechEngine.getPayload({
-          text: (settingsStore.enableTranslation ? (translatedMessage ? translatedMessage : messageData.text) : messageData.text),
-          intonation: messageData.command,
+          text: (settingsStore.enableTranslation ? (translatedMessage ? translatedMessage : inputMessage.text) : inputMessage.text),
+          intonation: inputMessage.command,
           hasPhonemes: null,
           voice,
           translatedText: translatedMessage,
           dictionaryRules: []
         }),
-        command: messageData.command,
-        customCommand: speechStore.customCommands.find((e) => e.value === messageData.command),
+        command: inputMessage.command,
+        customCommand: speechStore.customCommands.find((e) => e.value === inputMessage.command),
       }
     }
-  } else {
-    const engine = speechEngineManager.getEngineById(payload.engine)
+  } else if (inputData.type === 'IzabelaMessage') {
+    const inputMessage: IzabelaMessage = inputData.input
+
+    const engine = speechEngineManager.getEngineById(inputMessage.engine)
     if (!engine) return
 
     message = {
-      ...payload,
+      ...inputMessage,
       credentials: engine.getCredentials(),
       payload: engine.getPayload({
-        text: payload.message,
-        intonation: payload.command,
+        text: inputMessage.message,
+        intonation: inputMessage.command,
         hasPhonemes: null,
-        voice: payload.voice,
-        translatedText: payload.translatedMessage,
+        voice: inputMessage.voice,
+        translatedText: inputMessage.translatedMessage,
         dictionaryRules: []
       }),
-      command: payload.command,
-      customCommand: payload.customCommand
+      command: inputMessage.command,
+      customCommand: inputMessage.customCommand
     }
+  } else {
+    console.log('This message type is unhandled: ', inputData.type)
   }
   if (message) izabela.say(message)
 }
@@ -117,7 +124,16 @@ const onRemoveDictionaryRule = async(jsonObj: any) => {
 }
 
 socket.on('say', (e) => {
-  if (typeof e === 'string') onMessage(e)
+  if (typeof e === 'string') {
+    const inputMessage: IzabelaInput = interpretMessage(e, speechStore.engineCommands, speechStore.customCommands)
+    if(inputMessage.available) {
+      const inputData: InputType = {
+        type: 'IzabelaInput',
+        input: inputMessage
+      }
+      onMessage(inputData)
+    }
+  }
 })
 socket.on('add-dictionary-rule', (e) => {
   if (typeof e === 'object') onAddDictionaryRule(e)
@@ -132,6 +148,7 @@ socket.on('remove-dictionary-rule', (e) => {
 })
 
 onIPCSay(onMessage)
+
 onIPCCancelCurrentMessage(() => {
   izabela.endCurrentMessage()
 })

@@ -58,11 +58,12 @@ export default () => {
     useRecording({
       onEnded,
       onChunk,
-      clearOnEnd,
+      clearOnEnd
     }: {
       queueMessages?: boolean
       onChunk: (chunk: any) => void
       onEnded?: () => void
+      clearOnEnd: boolean
     }) {
       const id = uuid()
       const deferredMessage = Deferred<string>()

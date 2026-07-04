@@ -38,10 +38,13 @@ import { useMessengerWindowStore } from '@/teams/messenger/store'
 import {
   emitIPCGameOverlayStopIntercept,
   emitIPCSay,
+  onIPCSay,
 } from '@/electron/events/renderer'
 import { useSpeechStore } from '@/features/speech/store'
 import { useSettingsStore } from '@/features/settings/store'
 import NvSpeechEngineInput from '@/features/speech/components/inputs/NvSpeechEngineInput.vue'
+import type { InputType, IzabelaInput } from '@/modules/izabela/utils'
+import { interpretMessage } from '@/modules/izabela/utils'
 import { socket } from '@/services'
 import { isGameOverlay } from '@/consts.ts'
 import { useEventListener } from '@vueuse/core'
@@ -69,10 +72,23 @@ const placeholder = computed(() => {
   return 'So, said the angel to the child who, divided, broke the knife..'
 })
 
+onIPCSay((inputData: InputType) => {
+  // Do some notification for the message that was sent
+})
+
 const playMessage = () => {
   if (inputValue.value) {
-    emitIPCSay(inputValue.value)
-    inputValue.value = ''
+    const inputMessage: IzabelaInput = interpretMessage(inputValue.value, speechStore.engineCommands, speechStore.customCommands)
+
+    if (inputMessage.available) {
+      const inputData: InputType = {
+        type: "IzabelaInput",
+        input: inputMessage
+      }
+
+      emitIPCSay(inputData)
+      inputValue.value = ''
+    }
   }
 }
 

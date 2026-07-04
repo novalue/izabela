@@ -47,7 +47,7 @@ const plugin: Izabela.Server.Plugin = ({ app, config }) => {
       const speechConfig = SpeechConfig.fromSubscription(apiKey, region)
       speechConfig.speechSynthesisLanguage = payload.voice.Locale
       speechConfig.speechSynthesisVoiceName = payload.voice.ShortName
-      speechConfig.speechSynthesisOutputFormat = SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
+      speechConfig.speechSynthesisOutputFormat = SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3
       speechConfig.setProperty(PropertyId.SpeechServiceResponse_RequestWordBoundary, "true")
 	  
       const synthesizer = new SpeechSynthesizer(speechConfig)

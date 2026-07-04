@@ -213,8 +213,21 @@ export default (messagePayload: IzabelaMessagePayload) => {
   async function loadAudio(resource: AudioResponse, audioEls = audioElements) {
     if (!resource || !resource.available) return;
 
+    const rawAudioData = Buffer.from(resource.audio, "base64")
+    const audioBuffer : ArrayBufferLike = rawAudioData.buffer.slice(rawAudioData.byteOffset, rawAudioData.byteOffset + rawAudioData.byteLength)
+    
+    let blobSource : ArrayBuffer = new ArrayBuffer();
+    if (audioBuffer instanceof ArrayBuffer) {
+      blobSource = audioBuffer
+    } else if (audioBuffer instanceof SharedArrayBuffer) {
+      blobSource = new ArrayBuffer(audioBuffer.byteLength)
+      new Uint8Array(blobSource).set(new Uint8Array(audioBuffer))
+    } else {
+      return;
+    }
+
     const audioData = new Blob(
-      [Buffer.from(resource.audio, 'base64')], 
+      [blobSource], 
       {
         type: resource.type,
       }

@@ -1,7 +1,7 @@
 <template>
   <NvCard>
     <NvStack>
-      <NvGroup align="start" justify="between" noWrap>
+      <NvGroup align="start" justify="center" noWrap>
         <NvGroup align="start" class="!flex-1 min-w-0" noWrap>
           <NvButton
             :loading="isLoading"

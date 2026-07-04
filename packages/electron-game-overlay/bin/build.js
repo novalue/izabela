@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
-import { copy } from 'fs-extra'
+import { copy, mkdirs } from 'fs-extra'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -43,6 +43,8 @@ install.on('exit', function (code) {
   ls.on('exit', function (code) {
     console.log('child process exited with code ' + code.toString())
 
+    mkdirs(path.resolve(__dirname, `../dist`))
+    
     copy(`${packagePath}/electron-overlay`, path.resolve(__dirname, `../dist`))
     copy(
       `${packagePath}/electron-overlay/index.js`,

@@ -1,15 +1,9 @@
-cmake_minimum_required(VERSION 3.18)
 project(electron-overlay)
 
 add_definitions(-DNAPI_VERSION=6)
 add_definitions(-DNAPI_EXPERIMENTAL)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_JS_INC "c:/Users/Owoflow/.electron-gyp/20.3.8/include/node")
-set(CMAKE_JS_LIB "c:/Users/Owoflow/.electron-gyp/20.3.8/x64/node.lib")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "build")
 
 add_definitions(-DNOMINMAX)
 add_definitions(-D_WIN32_WINNT=0x0601)
@@ -40,8 +34,6 @@ string(REGEX REPLACE "[\r\n\"]" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${NODE_ADDON_API_DIR})
 
 target_link_options(${PROJECT_NAME} PRIVATE /DEBUG;/OPT:REF;/OPT:ICF; )
-
-message(STATUS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 add_custom_command(TARGET ${PROJECT_NAME}
     POST_BUILD

@@ -124,7 +124,7 @@ const plugin: Izabela.Server.Plugin = ({ app }) => {
           const answer: SpeechSynthesizerAnswer = { 
             available : true, 
             captions : [], 
-            audio : Buffer.from(audioBuffer).toString('base64'), 
+            audio : Buffer.from(audioBuffer.buffer).toString('base64'), 
             type : 'audio/mp3', 
             note : '' 
           }

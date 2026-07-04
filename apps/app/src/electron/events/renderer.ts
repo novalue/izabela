@@ -1,5 +1,5 @@
 import { mainProcess, processes } from '@/types/electron'
-import { IzabelaMessage } from '@/modules/izabela/types'
+import type { InputType } from '@/modules/izabela/utils'
 
 const { ipc } = window
 
@@ -20,16 +20,14 @@ export const emitIPCGameOverlayStopIntercept = () => {
   ipc.sendTo(mainProcess, 'game-overlay-stop-intercept')
 }
 
-type IPCSayPayload = string | IzabelaMessage
-
-export const onIPCSay = (callback: (payload: IPCSayPayload) => any) => {
+export const onIPCSay = (callback: (inputData: InputType) => any) => {
   processes.forEach((process) => {
     ipc.on(process, 'say', callback)
   })
 }
 
-export const emitIPCSay = (payload: IPCSayPayload) => {
-  ipc.sendTo('speech-worker', 'say', payload)
+export const emitIPCSay = (inputData: InputType) => {
+  ipc.sendTo('speech-worker', 'say', inputData)
 }
 
 export const emitIPCVoiceSpellcheckLocale = (locale: string) => {
